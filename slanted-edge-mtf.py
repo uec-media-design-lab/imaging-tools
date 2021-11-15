@@ -1,5 +1,4 @@
 #!/usr/bin/python3 -B
-
 import os                        # built-in module
 import sys                       # built-in module
 import time                      # built-in module
@@ -13,7 +12,7 @@ import scipy.ndimage.morphology  # pip install scipy
 import matplotlib.pyplot as pp   # pip install matplotlib
 import matplotlib.widgets        # pip install matplotlib
 import argv                      # local import
-
+import csv
 
 DEBUG = False
 
@@ -68,7 +67,7 @@ class MTFResults(object):
             print("MTF calculation for {} region failed.".format(self.corner))
 
 
-def mtf(config, results, filename):
+def mtf(config, results, filename, outputDir):
     print("Configuration:")
     pprint.pprint(config, indent=2)
     min_angle = config["edge-min-angle"]
@@ -161,9 +160,10 @@ def mtf(config, results, filename):
             # compute Edge Spread Function (ESF), Line Spread Function (LSF), and filtered LSF
             edge = res.edge_straight
             res.esf = esf = np.mean(edge, axis=0)
-            res.esf = esf = scipy.signal.wiener(esf, 5)[3:-3]
+            # res.esf = esf = scipy.signal.wiener(esf, 5)[3:-3]
             res.lsf = lsf = np.gradient(esf)[1:]
             res.lsfs = lsfs = scipy.signal.wiener(lsf, 7)[4:-4]
+            res.lsfs = lsfs = res.lsf #############################
             plot_lsf([edge], [esf, lsf, lsfs], ["Edge Profile", "LSF", "Filtered LSF"], res.corner)
             prompt("Review the {} ESF & LSF curves, then press Enter to continue.".format(res.corner))
             # compute filtered & unfiltered MTF
@@ -176,17 +176,34 @@ def mtf(config, results, filename):
             res.success = True
 
     pp.close("lsf")
+    
+    #########################
+    # mkdir
+    mkdir(outputDir + "/Result_fig")
+    mkdir(outputDir + "/Result_csv")
+    #########################
 
     for idx, res in enumerate(results):
         if res.success:
             label = "{}: MTF50 = {:.3f} cycles/pixel = {:.1f} pixels/cycle".format(res.corner, res.mtf50, 1.0 / res.mtf50)
+            ### save_mtfData
+            csvName = outputDir + "/Result_csv/{}.csv".format(barename)
+            data = [np.linspace(0,1,len(res.mtfs)), res.mtfs]
+            data = list(zip(*data))# 転置
+            file = open(csvName, 'w')
+            writer = csv.writer(file)
+            writer.writerow(["cycles/px", "mtf"])
+            writer.writerows(data)
+            file.close()
+            ###
+            
             plot_mtf(res.mtfs, res.mtf50, res.mtf20, label=label, color=pp.cm.cool(idx / 4))
             if DEBUG:  # plot the unfiltered MTF only in debug mode
                 plot_mtf(res.mtf, res.mtf50, res.mtf20, color=pp.cm.cool(idx / 4), linestyle=":", linewidth=0.5)
 
-    roi_filename = "{}-ROI.png".format(barename)
-    lsf_filename = "{}-LSF.png".format(barename)
-    mtf_filename = "{}-MTF.png".format(barename)
+    roi_filename = outputDir + "/Result_fig/" + "{}-ROI.png".format(barename)
+    lsf_filename = outputDir + "/Result_fig/" + "{}-LSF.png".format(barename)
+    mtf_filename = outputDir + "/Result_fig/" + "{}-MTF.png".format(barename)
     pp.title("MTF - {}".format(basename))
     pp.show(block=False)
     pp.figure("mtf")
@@ -198,8 +215,13 @@ def mtf(config, results, filename):
 
 
 def imread(filename, verbose=True):
+    print(filename)
     image, maxval = imgio.imread(filename, verbose=verbose)
+    print(image.shape)
+    print(verbose)
     image = np.dot(image, [0.2125, 0.7154, 0.0721])  # RGB => Luminance
+    
+    # ここで輝度正規化している。
     image = image / maxval
     image = normalize(image)
     return image
@@ -350,7 +372,7 @@ class ROI_selector(object):
     def box_select_callback(self, eclick, erelease):
         x1, y1 = eclick.xdata, eclick.ydata
         x2, y2 = erelease.xdata, erelease.ydata
-        self.roi = np.array([y1, y2, x1, x2]).round().astype(np.uint32)
+        self.roi = np.array([y1, y2, x1, x2]).round().astype(np.uint32) # ここで32bitのintに変換
 
     def event_exit_callback(self, event):
         if event.key in ["enter", "esc"]:
@@ -386,6 +408,31 @@ def save_config(json_file, config):
         print("Saving current config to {}.".format(json_file))
         save_json(json_file, config)
 
+########################################
+
+def mkfilelist(folderpath, ext):
+    # 指定フォルダ内の特定の拡張子のリストを作成して返す
+    files = os.listdir(folderpath)
+    res = []
+    res2 = []
+    for f in files:
+        fbase, fext = os.path.splitext(f)
+        if fext=="."+ext:
+            res.append(folderpath + "/" + fbase + fext)
+            res2.append(fbase)
+    return res, res2
+
+# ディレクトリ作成
+def mkdir(directoryPath):
+    if not os.path.exists(directoryPath):
+        os.makedirs(directoryPath)
+    return directoryPath
+
+# 出力先が存在するかチェック
+def outputFileCheck(filePath):
+    return os.path.exists(filePath)
+
+########################################
 
 def main():
     global DEBUG
@@ -414,6 +461,47 @@ def main():
         print()
         sys.exit(-1)
 
+    ########################################
+    filepathlist, filelist = mkfilelist(sys.argv[1], "tif")
+    outputDir = mkdir(sys.argv[1])
+    
+    for i in range(len(filelist)):
+        
+        filename = filepathlist[i]
+        enforce(os.path.exists(filename), "Image file {} does not exist.".format(filename))
+
+        config = load_config(json_in)
+
+        selected_rois = corners if roi == "all" else [roi]
+        ignored_rois = set(corners) - set(selected_rois)
+        for corner in ignored_rois:
+            key = "roi-{}".format(corner)  # 'top-left' => 'roi-top-left'
+            config[key] = []
+
+        if json_in is None:
+            selector = ROI_selector(filename)
+            for roi_name in selected_rois:
+                key = "roi-{}".format(roi_name)  # 'top-left' => 'roi-top-left'
+                config[key] = selector.run(roi_name)
+
+        print("=" * 40, os.path.basename(filename), "=" * 40)
+        results = [MTFResults(roi_name) for roi_name in selected_rois]
+        success = mtf(config, results, filename, outputDir)
+        print("Success." if success else "Failed.")
+        for res in results:
+            res.report()
+
+        if DEBUG or not quiet:
+            # input("Press Enter to quit...")
+            pass
+
+        pp.close("all")
+
+        save_config(json_out, config)
+
+    sys.exit(0 if success else 1)
+    
+    """
     filename = sys.argv[1]
     enforce(os.path.exists(filename), "Image file {} does not exist.".format(filename))
 
@@ -439,13 +527,15 @@ def main():
         res.report()
 
     if DEBUG or not quiet:
-        input("Press Enter to quit...")
+        # input("Press Enter to quit...")
+        pass
 
     pp.close("all")
 
     save_config(json_out, config)
 
     sys.exit(0 if success else 1)
+    """
 
 
 if __name__ == "__main__":
