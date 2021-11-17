@@ -33,7 +33,7 @@ DEFAULT_CONFIG = {
     "edge-max-angle": 88,
 }
 
-
+# MTF解析結果をひとつのクラスにまとめて管理
 class MTFResults(object):
 
     def __init__(self, corner):
@@ -66,7 +66,7 @@ class MTFResults(object):
             print("-" * 60)
             print("MTF calculation for {} region failed.".format(self.corner))
 
-
+# MTFの本体的関数
 def mtf(config, results, filename, outputDir):
     print("Configuration:")
     pprint.pprint(config, indent=2)
@@ -213,12 +213,12 @@ def mtf(config, results, filename, outputDir):
     success = np.all([res.success for res in results])
     return success
 
-
+# ファイル読み込み
 def imread(filename, verbose=True):
-    print(filename)
+    # print(filename)
     image, maxval = imgio.imread(filename, verbose=verbose)
-    print(image.shape)
-    print(verbose)
+    # print(image.shape)
+    # print(verbose)
     image = np.dot(image, [0.2125, 0.7154, 0.0721])  # RGB => Luminance
     
     # ここで輝度正規化している。
@@ -226,37 +226,40 @@ def imread(filename, verbose=True):
     image = normalize(image)
     return image
 
-
+# 画像の正規化
 def normalize(image):
+    # percentile関数で最小値と最大値を取得
     black = np.percentile(image, 0.1)
     white = np.percentile(image, 99.9)
     image = (image - black) / (white - black)
     image = np.clip(image, 0, 1)
     return image
 
-
+# 大津の二値化アルゴリズムを利用
 def otsu(image):
     # Otsu's binary thresholding
+    # ガウスぼかし：ノイズ低減
     image = cv2.GaussianBlur(image, (5, 5), 0)  # simple noise removal
     image = (image * 255).astype(np.uint8)      # [0, 1] => [0, 255]
-    otsu_thr, otsu_map = cv2.threshold(image, 0, 255, cv2.THRESH_OTSU)
+    otsu_thr, otsu_map = cv2.threshold(image, 0, 255, cv2.THRESH_OTSU)  # 大津の二値化
     return otsu_map
 
-
+# 二値化画像に対しmorphologicalフィルタリング
+# 要するにノイズ除去
 def morpho(mask):
     # morphological filtering of binary mask: 3 x (erosion + dilation)
     structure = np.ones((3,3))  # 8-connected structure
     mask = scipy.ndimage.morphology.binary_opening(mask, structure, iterations=3)
     return mask
 
-
+# cannyフィルタ。エッジ検出に使う？
 def canny(image):
     # Canny edge detection
     image = (image * 255).astype(np.uint8)  # [0, 1] => [0, 255]
     edge_map = cv2.Canny(image, image.min(), image.max(), apertureSize=3, L2gradient=True)
     return edge_map
 
-
+# フーリエ変換
 def fft(lsf):
     # FFT of line spread function
     fft = np.fft.fft(lsf, 1024)  # even 256 would be enough
@@ -265,7 +268,7 @@ def fft(lsf):
     fft = fft / fft.max()        # normalize to [0, 1]
     return fft
 
-
+# MTFグラフの描画
 def plot_mtf(mtf, mtf50, mtf20, **kwargs):
     fig = pp.figure(num="mtf", figsize=(17,9), dpi=110)
     fig.canvas.set_window_title("slanted-edge-mtf: MTF curves")
@@ -284,9 +287,9 @@ def plot_mtf(mtf, mtf50, mtf20, **kwargs):
     pp.ylabel("MTF")
     pp.legend()
 
-
+# LSFグラフの描画
 def plot_lsf(images, curves, titles, suptitle):
-    if DEBUG:
+    if DEBUG:   # デバッグ時に実行される
         ncols = len(curves) + len(images)
         fig, axes = pp.subplots(num="curves", nrows=1, ncols=ncols, squeeze=False, clear=True, figsize=(17,9), dpi=110)
         fig.canvas.set_window_title("slanted-edge-mtf: {} ESF & LSF curves".format(suptitle))
@@ -306,11 +309,11 @@ def plot_lsf(images, curves, titles, suptitle):
         pp.tight_layout()
         pp.show(block=False)
 
-
+# エッジ描画
 def plot_edge(images, edge_coeffs=None, suptitle=None):
     # plots the given list of images on separate subplots, then optionally overlays each
     # subplot with a red line representing the given linear edge equation (y = ax + b)
-    if DEBUG:
+    if DEBUG:   # デバッグ時に実行
         ncols = len(images)
         roih, roiw = images[0].shape
         fig, axes = pp.subplots(num="edges", nrows=1, ncols=ncols, sharey=True, squeeze=False, clear=True, figsize=(17,9), dpi=110)
@@ -345,7 +348,7 @@ def enforce(expression, message_if_false, run_if_false=None):
         prompt("Processing failed. Press Enter to quit...")
         sys.exit(1)
 
-
+# ROI選択用クラス
 class ROI_selector(object):
 
     def __init__(self, filename):
@@ -378,20 +381,20 @@ class ROI_selector(object):
         if event.key in ["enter", "esc"]:
             pp.close("selector")
 
-
+# jsonファイルの読み込み
 def load_json(filename):
     with open(filename, "r") as f:
         config = json.load(f)
     return config
 
-
+# jsonファイルの書き込み
 def save_json(filename, config):
     with open(filename, "w") as f:
         config_str = pprint.pformat(config, indent=2, width=120)
         config_str = config_str.replace('\'', '"')  # python dict => json
         f.write(config_str)
 
-
+# 設定ファイルの読み込み
 def load_config(json_file):
     if json_file is not None:
         enforce(os.path.exists(json_file), "Config file {} does not exist.".format(json_file))
@@ -402,7 +405,7 @@ def load_config(json_file):
         config = DEFAULT_CONFIG
     return config
 
-
+# 設定ファイルの書き込み
 def save_config(json_file, config):
     if json_file is not None:
         print("Saving current config to {}.".format(json_file))
