@@ -438,16 +438,16 @@ def outputFileCheck(filePath):
 ########################################
 
 def main():
-    global DEBUG
-    DEBUG = argv.exists("--debug")
-    quiet = argv.exists("--quiet")
-    json_in = argv.stringval("--load", default=None)
-    json_out = argv.stringval("--save", default=None)
+    global DEBUG                        # grobal XXX: グローバル変数の宣言
+    DEBUG = argv.exists("--debug")      # オプションに--debugがあればDEBUG変数をTrueに切り替え。デバッグ用の動作に入る。便利そう
+    quiet = argv.exists("--quiet")      # quietをTrueに変更(あれば)。quietは最後の「Press Enter to quit」にだけ使ってる
+    json_in = argv.stringval("--load", default=None)    # --loadがあるとき、直後の文字列を格納(ロード元のjsonファイル)
+    json_out = argv.stringval("--save", default=None)   # --loadがあるとき、直後の文字列を格納(セーブ先のjsonファイル)
     corners = ["center", "top-left", "top-right", "bottom-left", "bottom-right"]
-    roi = argv.stringval("--roi", default="center", accepted=corners+["all"])
+    roi = argv.stringval("--roi", default="center", accepted=corners+["all"])   # --roiの直後を格納(あれば)。acceptedは選択肢っぽい
     showHelp = argv.exists("--help")
-    argv.exitIfAnyUnparsedOptions()
-    if showHelp or len(sys.argv) < 2:
+    argv.exitIfAnyUnparsedOptions()     # 例外処理的な。不要なオプションある場合に動く？
+    if showHelp or len(sys.argv) < 2:   # --help使用か引数不足なとき：使い方表示してプログラム終了
         print("Usage: slanted-edge-mtf.py [options] image.{ppm|png|jpg}")
         print()
         print("  options:")
@@ -465,42 +465,42 @@ def main():
         sys.exit(-1)
 
     ########################################
-    filepathlist, filelist = mkfilelist(sys.argv[1], "tif")
-    outputDir = mkdir(sys.argv[1])
+    filepathlist, filelist = mkfilelist(sys.argv[1], "tif") # (改変して自作関数挿入)第一引数のフォルダ名からtif形式のファイルリストを作成
+    outputDir = mkdir(sys.argv[1])                          # 自作関数：格納先フォルダが無ければ作る
     
-    for i in range(len(filelist)):
+    for i in range(len(filelist)):                          # ファイルリスト一つずつ取って処理
         
         filename = filepathlist[i]
-        enforce(os.path.exists(filename), "Image file {} does not exist.".format(filename))
+        enforce(os.path.exists(filename), "Image file {} does not exist.".format(filename)) # ファイル無い場合：エラー吐いて終了
 
-        config = load_config(json_in)
+        config = load_config(json_in)       # --loadがある場合設定のjsonファイル読み込み
 
-        selected_rois = corners if roi == "all" else [roi]
-        ignored_rois = set(corners) - set(selected_rois)
+        selected_rois = corners if roi == "all" else [roi]  # roiが指定されているならそれを使用。無ければcorners変数を適用
+        ignored_rois = set(corners) - set(selected_rois)    # ignored_roi: roi以外の領域
         for corner in ignored_rois:
             key = "roi-{}".format(corner)  # 'top-left' => 'roi-top-left'
             config[key] = []
 
-        if json_in is None:
-            selector = ROI_selector(filename)
+        if json_in is None:                     # --loadが無い場合はGUI使ってROI選択
+            selector = ROI_selector(filename)   # ここでROI選択
             for roi_name in selected_rois:
                 key = "roi-{}".format(roi_name)  # 'top-left' => 'roi-top-left'
                 config[key] = selector.run(roi_name)
 
-        print("=" * 40, os.path.basename(filename), "=" * 40)
-        results = [MTFResults(roi_name) for roi_name in selected_rois]
-        success = mtf(config, results, filename, outputDir)
-        print("Success." if success else "Failed.")
+        print("=" * 40, os.path.basename(filename), "=" * 40)           # (自分で追加)処理中のファイル名表示
+        results = [MTFResults(roi_name) for roi_name in selected_rois]  # MTF解析結果格納用クラスのリスト
+        success = mtf(config, results, filename, outputDir)             # MTF解析(+プロット)。成功すればTrueが返る
+        print("Success." if success else "Failed.")                 # 成功したか否か
         for res in results:
-            res.report()
+            res.report()    # テキストで簡単な解析結果のまとめを出力
 
         if DEBUG or not quiet:
-            # input("Press Enter to quit...")
+            # input("Press Enter to quit...")   # 本来はquiet入れてる場合、最後にEnterを押すことで閉じることができる。コメントアウトしたので入れなくても良い
             pass
 
-        pp.close("all")
+        pp.close("all") # グラフ閉じる
 
-        save_config(json_out, config)
+        save_config(json_out, config)   # (--saveあれば)jsonファイルに設定書き出し
 
     sys.exit(0 if success else 1)
     
