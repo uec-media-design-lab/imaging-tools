@@ -215,11 +215,14 @@ def mtf(config, results, filename, outputDir):
 
 # ファイル読み込み
 def imread(filename, verbose=True):
-    # print(filename)
+    # imgio参考：https://github.com/toaarnio/imgio/blob/master/imgio/imgio.py
+    # verbose：Trueにすると色々ログ出力するっぽい
     image, maxval = imgio.imread(filename, verbose=verbose)
-    # print(image.shape)
-    # print(verbose)
     image = np.dot(image, [0.2125, 0.7154, 0.0721])  # RGB => Luminance
+    
+    # LuminanceとY値は微妙に違うらしい。
+    # RGB => Luminance:     0.2125*R + 0.7154*G + 0.0721*B  
+    # RGB => Y:             0.299*R + 0.587*G + 0.114*B     ITU-RBT.709(Rec.709)より
     
     # ここで輝度正規化している。
     image = image / maxval
