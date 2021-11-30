@@ -383,16 +383,16 @@ class ROI_selector(object):
 
 # jsonファイルの読み込み
 def load_json(filename):
-    with open(filename, "r") as f:
-        config = json.load(f)
+    with open(filename, "r") as f:  # ファイル開く
+        config = json.load(f)       # (デフォルトでついてるライブラリ)jsonを利用
     return config
 
 # jsonファイルの書き込み
 def save_json(filename, config):
-    with open(filename, "w") as f:
-        config_str = pprint.pformat(config, indent=2, width=120)
+    with open(filename, "w") as f:  # ファイル開く
+        config_str = pprint.pformat(config, indent=2, width=120)    # データを成型してる。インデント幅2, 1行最大120字
         config_str = config_str.replace('\'', '"')  # python dict => json
-        f.write(config_str)
+        f.write(config_str)         # 書き込み自体は平文。特別なライブラリは使っていない
 
 # 設定ファイルの読み込み
 def load_config(json_file):
