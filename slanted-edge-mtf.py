@@ -396,20 +396,20 @@ def save_json(filename, config):
 
 # 設定ファイルの読み込み
 def load_config(json_file):
-    if json_file is not None:
-        enforce(os.path.exists(json_file), "Config file {} does not exist.".format(json_file))
+    if json_file is not None:           # jsonファイル(ロード元のパス)が指定されている
+        enforce(os.path.exists(json_file), "Config file {} does not exist.".format(json_file))  # ファイルが見つからない場合：エラー出して終了
         print("Loading configuration from {}.".format(json_file))
-        config = load_json(json_file)
+        config = load_json(json_file)   # config変数にjsonファイルをロード
     else:
-        print("JSON config file not specified (see --help), reverting to interactive mode.")
+        print("JSON config file not specified (see --help), reverting to interactive mode.")    # loadがついてない
         config = DEFAULT_CONFIG
-    return config
+    return config   # configを返す
 
 # 設定ファイルの書き込み
 def save_config(json_file, config):
-    if json_file is not None:
+    if json_file is not None:                                       # jsonファイル(出力先のパス)が指定されている
         print("Saving current config to {}.".format(json_file))
-        save_json(json_file, config)
+        save_json(json_file, config)                                # jsonファイル書き込み
 
 ########################################
 
