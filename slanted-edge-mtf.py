@@ -239,6 +239,7 @@ def normalize(image):
     return image
 
 # 大津の二値化アルゴリズムを利用
+# (8bitで処理してる？)
 def otsu(image):
     # Otsu's binary thresholding
     # ガウスぼかし：ノイズ低減
