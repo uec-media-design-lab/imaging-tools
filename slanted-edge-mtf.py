@@ -355,13 +355,28 @@ def enforce(expression, message_if_false, run_if_false=None):
 # ROI選択用クラス
 class ROI_selector(object):
 
-    def __init__(self, filename):
+    def __init__(self, filename):   # コンストラクタ：画像読み込みだけ
         self.image = imread(filename, verbose=False)
 
-    def run(self, corner):
-        self.fig, self.ax = pp.subplots(num="selector", figsize=(17,9), dpi=110)
+    def run(self, corner):          # run：ROI選択本体
+        self.fig, self.ax = pp.subplots(num="selector", figsize=(17,9), dpi=110)    # num:識別番号, figsize:画像サイズ(縦横比っぽい), dpi:1インチあたりのピクセル数
         self.fig.canvas.set_window_title("slanted-edge-mtf: Edge Region Selector")
         self.ax.imshow(self.image, cmap="gray")
+        """
+        RectangleSelector   https://matplotlib.org/stable/api/widgets_api.html#matplotlib.widgets.RectangleSelector
+        第一引数：   軸
+        第二引数：   関数。マウスホールドを解除したとき(リリースされたとき)呼び出す関数を指定。eclick, ereleaseを引数とする。
+                        eclick:     マウスを押した時点のデータ
+                        erelease:   マウスを離した時点のデータ
+        drawtype：  描画するタイプ？
+        uselit：    Trueにすると描画が高速化されるらしい
+        button：    トリガーに使うボタン    https://matplotlib.org/stable/api/backend_bases_api.html#matplotlib.backend_bases.MouseButton
+                        左クリック：1, 中クリック：2, 右クリック：3, BackとForwardもある(何を指してるかは分からない)
+        minspanx：  最小選択領域サイズ(x方向)   これより小さいと無反応にするらしい
+        minspany：  最小選択領域サイズ(y方向)
+        spancoords：minspan{x|y}をデータで見るかピクセル(描画上のサイズ？)で見るか
+        interactive：描画後にインタラクションするか否か。(多分Falseにすると選択した瞬間閉じる)
+        """
         rs = matplotlib.widgets.RectangleSelector(self.ax,
                                                   self.box_select_callback,
                                                   drawtype="box",
@@ -371,19 +386,22 @@ class ROI_selector(object):
                                                   minspany=MIN_ROI_HEIGHT,
                                                   spancoords="data",
                                                   interactive=True)
-        pp.connect("key_press_event", self.event_exit_callback)
-        pp.title("Select {} edge region, then press Enter".format(corner.upper()))
-        pp.show(block=True)
+        # pp(pyplot).connect：第一引数のイベントに第二引数の関数を結びつける。
+        # インタラクティブなプロットが作成できる                                詳細：https://qiita.com/ceptree/items/c9239ce4e442482769b3
+        pp.connect("key_press_event", self.event_exit_callback) # キーを押したとき、event_exit_callback関数を呼ぶようにする
+        pp.title("Select {} edge region, then press Enter".format(corner.upper()))  # グラフのタイトル描画
+        pp.show(block=True)     # block=Trueにするとウィンドウ閉じるまで先に進まなくなる    詳細：https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.show.html?highlight=show
         return list(self.roi)
 
-    def box_select_callback(self, eclick, erelease):
-        x1, y1 = eclick.xdata, eclick.ydata
-        x2, y2 = erelease.xdata, erelease.ydata
+    def box_select_callback(self, eclick, erelease):    # 領域選択時(マウスホールド後)に呼ばれる関数
+        x1, y1 = eclick.xdata, eclick.ydata             # 始点の座標を格納
+        x2, y2 = erelease.xdata, erelease.ydata         # 終点の座標を格納
         self.roi = np.array([y1, y2, x1, x2]).round().astype(np.uint32) # ここで32bitのintに変換
 
     def event_exit_callback(self, event):
-        if event.key in ["enter", "esc"]:
-            pp.close("selector")
+        if event.key in ["enter", "esc"]:   # 押されたキーがEnter, Escのどっちか
+            pp.close("selector")            # グラフを閉じる
+            # show関数でblock=Trueにしてるので、ここで閉じることで次の処理へ進めることができる
 
 # jsonファイルの読み込み
 def load_json(filename):
