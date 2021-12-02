@@ -339,9 +339,9 @@ def plot_edge(images, edge_coeffs=None, suptitle=None):
         pp.show(block=False)
 
 
-def prompt(message):
+def prompt(message):    # デバッグ時に引数のメッセージ表示する簡単な関数
     if DEBUG:
-        input(message)
+        input(message)  # input関数：文字表示しつつ、エンターキーで先に進むのを1行で済ませている
 
 
 def enforce(expression, message_if_false, run_if_false=None):
