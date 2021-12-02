@@ -345,12 +345,12 @@ def prompt(message):
 
 
 def enforce(expression, message_if_false, run_if_false=None):
-    if not expression:
-        print(message_if_false)
-        if run_if_false is not None:
+    if not expression:              # 本来起こってほしいもの(expression)が起こらない(False)場合
+        print(message_if_false)     # エラー文表示
+        if run_if_false is not None:# エラー起こった時に呼ぶ関数(引数で指定されていれば)を呼ぶ
             run_if_false()
-        prompt("Processing failed. Press Enter to quit...")
-        sys.exit(1)
+        prompt("Processing failed. Press Enter to quit...") # 一個うえで定義されてる関数。DEBUG時はこの文表示して閉じる
+        sys.exit(1)                 # プログラム異常終了
 
 # ROI選択用クラス
 class ROI_selector(object):
