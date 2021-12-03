@@ -55,7 +55,7 @@ class MTFResults(object):
         self.success = False         # True|False
 
     def report(self):
-        if self.success:
+        if self.success:    # 成功時：エッジ角、エッジの高さ(？)、MTF50と20の結果を出力
             print("-" * 60)
             print("Results for {} region:".format(self.corner))
             print("  Edge angle: {:.1f} degrees".format(self.edge_angle))
@@ -63,7 +63,7 @@ class MTFResults(object):
             print("  MTF50: {:.3f} cycles/pixel = {:.1f} pixels/cycle".format(self.mtf50, 1.0 / self.mtf50))
             print("  MTF20: {:.3f} cycles/pixel = {:.1f} pixels/cycle".format(self.mtf20, 1.0 / self.mtf20))
         else:
-            print("-" * 60)
+            print("-" * 60) # 失敗時：失敗したことを出力
             print("MTF calculation for {} region failed.".format(self.corner))
 
 # MTFの本体的関数
