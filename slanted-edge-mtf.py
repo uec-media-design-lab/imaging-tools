@@ -69,22 +69,24 @@ class MTFResults(object):
 # MTFの本体的関数
 def mtf(config, results, filename, outputDir):
     print("Configuration:")
-    pprint.pprint(config, indent=2)
-    min_angle = config["edge-min-angle"]
-    max_angle = config["edge-max-angle"]
-    edge_width = config["edge-width"]
+    pprint.pprint(config, indent=2) # configの内容をインデント幅2で、改行して見やすく表示している
+    min_angle = config["edge-min-angle"]    # config(辞書型変数)の   edge-min-angleを取得
+    max_angle = config["edge-max-angle"]    #                       edge-max-angle
+    edge_width = config["edge-width"]       #                       edge-width
 
     # read source image, convert to grayscale, normalize [black, white] = [0, 1]
-    basename = os.path.basename(filename)
-    barename = os.path.splitext(basename)[0]
-    image = imread(filename)
-    imgh, imgw = image.shape
+    # 画像読み込み、グレスケ変換、正規化(黒--白を0--1の小数で)
+    basename = os.path.basename(filename)       # ファイル名取得(拡張子あり)
+    barename = os.path.splitext(basename)[0]    # ファイル名    (拡張子なし)
+    image = imread(filename)                # 自作の画像読み込み関数
+    imgh, imgw = image.shape                # 縦横サイズ
 
     # plot source image - selected regions will be overlaid later
+    # ソース画像表示用のpp用意？ ROIが上書きで描画されるらしい。
     fig, axis = pp.subplots(num="image", nrows=1, ncols=1, squeeze=True, figsize=(17,9), dpi=110)
-    fig.canvas.set_window_title("slanted-edge-mtf: Selected regions")
-    axis.imshow(image)
-    pp.title(basename)
+    fig.canvas.set_window_title("slanted-edge-mtf: Selected regions")   # ウィンドウ名セット
+    axis.imshow(image)  # 画像表示
+    pp.title(basename)  # タイトルセット
 
     for idx, res in enumerate(results):
 
