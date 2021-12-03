@@ -234,10 +234,10 @@ def imread(filename, verbose=True):
 # 画像の正規化
 def normalize(image):
     # percentile関数で最小値と最大値を取得
-    black = np.percentile(image, 0.1)
-    white = np.percentile(image, 99.9)
-    image = (image - black) / (white - black)
-    image = np.clip(image, 0, 1)
+    black = np.percentile(image, 0.1)       # ソートしたときの下位0.1%にあたる値をblackとする
+    white = np.percentile(image, 99.9)      # ソートしたときの下位99.9%(上位0.1%)の値をwhite
+    image = (image - black) / (white - black)   # コントラスト比の計算？
+    image = np.clip(image, 0, 1)    # np.clip: 第二引数--第三引数の範囲に収まるようスケール変換
     return image
 
 # 大津の二値化アルゴリズムを利用
