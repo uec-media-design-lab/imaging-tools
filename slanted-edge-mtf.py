@@ -88,25 +88,26 @@ def mtf(config, results, filename, outputDir):
     axis.imshow(image)  # 画像表示
     pp.title(basename)  # タイトルセット
 
-    for idx, res in enumerate(results):
+    for idx, res in enumerate(results): # enumerate: インデックス番号,要素を同時に代入できる関数。便利
 
         # extract region of interest
-        prefix = "{} edge detection failed".format(res.corner)  # prepended to all error messages
-        key = "roi-{}".format(res.corner)
+        # ROIの抽出
+        prefix = "{} edge detection failed".format(res.corner)  # prepended to all error messages   エラー文用意？
+        key = "roi-{}".format(res.corner)   # corner: 中央、左上、右上など。MTFResultsクラス
         roi = np.array(config[key])
-        if roi is None or len(roi) == 0:
-            print("{} region not specified, skipping...".format(res.corner))
+        if roi is None or len(roi) == 0:    # roiが選択されてない場合
+            print("{} region not specified, skipping...".format(res.corner))    # スキップ
             continue
-        roi_valid = np.all((roi >= 0) & (roi < [imgh, imgh, imgw, imgw]))
+        roi_valid = np.all((roi >= 0) & (roi < [imgh, imgh, imgw, imgw]))   # 有効な場合：ROIがあって画像サイズより小さい
         enforce(roi_valid, "{0}: Selected region {1} is exceeding image boundaries ({3} x {2})."
-                .format(prefix, roi, *image.shape))
-        region = image[roi[0]:roi[1], roi[2]:roi[3]]
-        roih, roiw = region.shape
-        roi_valid = np.all(region.shape > MIN_ROI_SIZE)
-        err_plotter = lambda: plot_edge([region], suptitle=res.corner)
-        axis.add_patch(pp.Rectangle((roi[2], roi[0]), roiw, roih, edgecolor="red", facecolor="none"))
+                .format(prefix, roi, *image.shape))     # 直前行がFalseの場合エラー
+        region = image[roi[0]:roi[1], roi[2]:roi[3]]    # ROIで切り取り
+        roih, roiw = region.shape                       # ROIのサイズ取得 => roih, roiw
+        roi_valid = np.all(region.shape > MIN_ROI_SIZE) # 有効な場合：ROIサイズが冒頭で定義したサイズ以上
+        err_plotter = lambda: plot_edge([region], suptitle=res.corner)  # 引数なしのラムダ式。plot_edgeを引数[region]で呼ぶ。(ラムダ式の意味ある？)
+        axis.add_patch(pp.Rectangle((roi[2], roi[0]), roiw, roih, edgecolor="red", facecolor="none"))   # グラフにROI領域の描画処理を追加
         enforce(roi_valid, "{0}: Selected region must be at least {2} x {1} pixels; was {4} x {3}."
-                .format(prefix, *MIN_ROI_SIZE, *region.shape), err_plotter)
+                .format(prefix, *MIN_ROI_SIZE, *region.shape), err_plotter) # ROIサイズが有効じゃない場合エラー
 
         # detect edge pixels
         otsu_map = otsu(region)                               # generate binary mask: 0=black, 1=white
