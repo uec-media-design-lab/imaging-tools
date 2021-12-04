@@ -110,14 +110,20 @@ def mtf(config, results, filename, outputDir):
                 .format(prefix, *MIN_ROI_SIZE, *region.shape), err_plotter) # ROIサイズが有効じゃない場合エラー
 
         # detect edge pixels
+        # エッジ抽出
+        #   大津のアルゴリズムで二値化                  =>  otsu_map
+        #   morpho関数で小さなノイズ除去                =>  otsu_filt
+        #   cannyフィルタで一意にエッジ出す             =>  otsu_edges
+        #   np.nonzeroで非ゼロ要素(エッジの座標)抽出    =>  edge_coords     co-ordinate: 座標
+        #   エッジとなりえるピクセルの数(？)カウント     =>  edge_y_span
         otsu_map = otsu(region)                               # generate binary mask: 0=black, 1=white
         otsu_filt = morpho(otsu_map)                          # filter out small non-contiguous regions
         otsu_edges = canny(otsu_filt)                         # detect edges; there should be only one
         edge_coords = np.nonzero(otsu_edges)                  # get (x, y) coordinates of edge pixels
         edge_y_span = len(np.unique(edge_coords[0]))          # get number of scanlines intersected
-        err_plotter = lambda: plot_edge([region, otsu_map, otsu_filt, otsu_edges], suptitle=res.corner)
+        err_plotter = lambda: plot_edge([region, otsu_map, otsu_filt, otsu_edges], suptitle=res.corner)     # 引数なしのラムダ式。plot_edgeを引数[region, otsu_map, ...]で呼ぶ。(ラムダ式の意味ある？)
         enforce(edge_y_span > MIN_ROI_HEIGHT, "{}: Edge must have at least {} scanlines; had {}."
-                .format(prefix, MIN_ROI_HEIGHT, edge_y_span), err_plotter)
+                .format(prefix, MIN_ROI_HEIGHT, edge_y_span), err_plotter)  # edge_y_spanがROI最小値以下の時エラー
 
         # fit a straight line through the detected edge
         edge_coeffs = np.polyfit(*reversed(edge_coords), deg=1)
