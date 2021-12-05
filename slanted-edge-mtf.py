@@ -176,24 +176,30 @@ def mtf(config, results, filename, outputDir):
 
     pp.close("edges")
 
-    for idx, res in enumerate(results):
-        if res.edge_straight is not None:
+    # それぞれのresultに対してESF, LSF, MTF計算する
+    for idx, res in enumerate(results):     # enumerate: インデックス番号,要素を同時に代入できる関数。
+        if res.edge_straight is not None:   # edge_straight(解析対象)がある時に解析
             # compute Edge Spread Function (ESF), Line Spread Function (LSF), and filtered LSF
             edge = res.edge_straight
-            res.esf = esf = np.mean(edge, axis=0)
-            # res.esf = esf = scipy.signal.wiener(esf, 5)[3:-3]
-            res.lsf = lsf = np.gradient(esf)[1:]
-            res.lsfs = lsfs = scipy.signal.wiener(lsf, 7)[4:-4]
-            res.lsfs = lsfs = res.lsf #############################
-            plot_lsf([edge], [esf, lsf, lsfs], ["Edge Profile", "LSF", "Filtered LSF"], res.corner)
-            prompt("Review the {} ESF & LSF curves, then press Enter to continue.".format(res.corner))
+            res.esf = esf = np.mean(edge, axis=0)               # 行列のy方向に平均とってESFを出す
+            res.esf = esf = scipy.signal.wiener(esf, 5)[3:-3]   # wienerフィルタでノイズ除去
+            res.lsf = lsf = np.gradient(esf)[1:]                # 勾配計算(微分)してLSFを出す
+            res.lsfs = lsfs = scipy.signal.wiener(lsf, 7)[4:-4] # wienerフィルタ重ね掛けでノイズ除去 => LSFS
+            plot_lsf([edge], [esf, lsf, lsfs], ["Edge Profile", "LSF", "Filtered LSF"], res.corner)     # デバッグ時：ESF, LSF, LSFSをプロット
+            prompt("Review the {} ESF & LSF curves, then press Enter to continue.".format(res.corner))          # デバッグ時：プロンプト上にテキスト表示+Enterで先に進む
             # compute filtered & unfiltered MTF
-            res.mtf = mtf = fft(lsf)
-            res.mtfs = mtfs = fft(lsfs)
+            res.mtf = mtf = fft(lsf)        # LSF を元にMTF 計算
+            res.mtfs = mtfs = fft(lsfs)     # LSFSを元にMTFS計算
             # compute MTF50 & MTF20 from filtered MTF
-            x_mtf = np.linspace(0, 1, len(mtf))
-            res.mtf50 = mtf50 = np.interp(0.5, mtfs[::-1], x_mtf[::-1])
-            res.mtf20 = mtf20 = np.interp(0.2, mtfs[::-1], x_mtf[::-1])
+            x_mtf = np.linspace(0, 1, len(mtf))     # 0--1の等差数列生成(mtfのデータ数で等分)
+            # np.interp(x, xp, fp): 線形補完する関数
+            #   x: 評価するX座標(内挿、xpの中にある必要があり)
+            #   xp:X軸(単調増加)
+            #   fp:Y軸の値
+            # np.interp(2.5, [1,2,3], [3,2,0]) => 1.0
+            #   2.5は2と3の中間。fpの対応する点は2と0なので、(2+0)/2 = 1.0
+            res.mtf50 = mtf50 = np.interp(0.5, mtfs[::-1], x_mtf[::-1])     # 線形補完して、MTFの値が0.5になる空間周波数を求めている
+            res.mtf20 = mtf20 = np.interp(0.2, mtfs[::-1], x_mtf[::-1])     # 線形補完して、MTFの値が0.2になる空間周波数を求めている
             res.success = True
 
     pp.close("lsf")
