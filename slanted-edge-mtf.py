@@ -38,14 +38,14 @@ class MTFResults(object):
 
     def __init__(self, corner):
         self.corner = corner         # center|top-left|...
-        self.esf = None              # Edge Spread Function
-        self.lsf = None              # Line Spread Function
-        self.lsfs = None             # smoothed LSF
-        self.mtf = None              # FFT of raw LSF
-        self.mtfs = None             # FFT of smoothed LSF
-        self.mtf50 = None            # MTF50 in cycles/pixel
-        self.mtf20 = None            # MTF20 in cycles/pixel
-        self.edge_straight = None    # straightened edge region
+        self.esf = None              # Edge Spread Function         # ESF
+        self.lsf = None              # Line Spread Function         # LSF
+        self.lsfs = None             # smoothed LSF                 # wienerフィルタでスムージングしたLSF
+        self.mtf = None              # FFT of raw LSF               # LSFを基に計算したMTF
+        self.mtfs = None             # FFT of smoothed LSF          # LSFSを基に計算したMTF。スムージングした結果
+        self.mtf50 = None            # MTF50 in cycles/pixel        # MTFが0.5を指す空間周波数
+        self.mtf20 = None            # MTF20 in cycles/pixel        # MTFが0.2を指す空間周波数
+        self.edge_straight = None    # straightened edge region     # 斜めの線を直線にそろえたときのエッジデータ
         self.edge_region = None      # edge region source pixels
         self.edge_mask = None        # edge region binary mask
         self.edge_coords = None      # edge y-coords & x-coords
