@@ -135,25 +135,35 @@ def mtf(config, results, filename, outputDir):
         prompt("Review the {} edge plots, then press Enter to continue.".format(res.corner.lower()))    # デバッグ時：「エッジ描画した」「Enterで次へ」
 
         # extract EDGE_WIDTH pixels from each scanline, centered on the detected edge
+        # 検出したエッジの閾値を中心に、EDGE_WIDTHピクセルだけスキャンする
+        # poly1d: 1字多項式(数式リスト, 変数記号)   poly1d([1,2,3], variable="X") => 1X^2 + 2X + 3
+        # poly1d.c: 多項式の係数    c[0]で定数項
         px = np.poly1d(edge_coeffs, variable="x")  # y = ax + b  <==> x = (y - b) / a
-        py = np.poly1d([1.0 / px.c[0], -px.c[1] / px.c[0]], variable="y")
-        xp = np.polyval(py, np.arange(0, roih))  # ideal edge position on each scanline
-        xpi = xp.round().astype(np.int32)
-        xfirst = xpi - edge_width // 2
-        xlast = xpi + edge_width // 2
-        valid_rows = (xfirst >= 0) & (xlast < roiw)
+        py = np.poly1d([1.0 / px.c[0], -px.c[1] / px.c[0]], variable="y")   # これら2行で、y=の形からx=の形を導いてる
+        xp = np.polyval(py, np.arange(0, roih))  # ideal edge position on each scanline     # np.arange:等差数列の生成。0--ROI高さまでのリスト      polyval(数式, 評価するための式や値) 要するに代入操作    roih個の値が出てくる
+        xpi = xp.round().astype(np.int32)   # (それぞれのエッジポイントに対して)小数切り捨て→int変換。エッジ中心のx座標[px]が得られる
+        xfirst = xpi - edge_width // 2      # 中心からedge_width/2引いた位置が始点(移動幅の小数は切り捨て)      //2: 切り捨て除算
+        xlast = xpi + edge_width // 2       # 中心からedge_width/2足した位置が終点(移動幅の少数派切り捨て)
+        valid_rows = (xfirst >= 0) & (xlast < roiw)     # 有効な範囲に収まっているかチェック。始点・終点が画像内にあるかどうか
         xfirst = xfirst[valid_rows]
         xlast = xlast[valid_rows]
         enforce(np.sum(valid_rows) >= MIN_ROI_HEIGHT, "{}: Edge must have at least {} valid scanlines; had {}."
-                .format(prefix, MIN_ROI_HEIGHT, np.sum(valid_rows)))
-        xmin = np.min(xfirst)
-        xmax = np.max(xlast)
-        xfirst -= xmin
-        xlast -= xmin
-        crop = region[valid_rows, xmin:xmax+1]
-        roih, roiw = crop.shape
-        edge_straight = np.zeros((roih, edge_width), dtype=np.float32)
-        edge_straight[:] = [crop[y, xfirst[y]:xlast[y]+1] for y in range(roih)]
+                .format(prefix, MIN_ROI_HEIGHT, np.sum(valid_rows)))    # 有効なスキャンライン数が一定以下の場合エラー
+        xmin = np.min(xfirst)   # xmin:始点x座標の最小値
+        xmax = np.max(xlast)    # xmax:終点x座標の最大値
+        xfirst -= xmin          # 原点ずらし
+        xlast -= xmin           # 原点ずらし
+        crop = region[valid_rows, xmin:xmax+1]      # 解析に使う領域をクリッピング  縦：有効な行      横：始点最小値--終点最大値
+        roih, roiw = crop.shape     # ROIを有効な範囲に限定して更新
+        edge_straight = np.zeros((roih, edge_width), dtype=np.float32)  # float32型、縦ROI高さ、横エッジ幅のゼロ行列生成
+        edge_straight[:] = [crop[y, xfirst[y]:xlast[y]+1] for y in range(roih)]     # 代入操作。スキャンラインごとにそれぞれの値格納。
+        # 12345__
+        # _67890_
+        # __abcde
+        
+        # => ┌ 12345 ┐
+        #    │ 67890 │
+        #    └ abcde ┘
 
         # store results
         res.edge_straight = edge_straight
