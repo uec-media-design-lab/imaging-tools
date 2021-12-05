@@ -126,12 +126,13 @@ def mtf(config, results, filename, outputDir):
                 .format(prefix, MIN_ROI_HEIGHT, edge_y_span), err_plotter)  # edge_y_spanがROI最小値以下の時エラー
 
         # fit a straight line through the detected edge
-        edge_coeffs = np.polyfit(*reversed(edge_coords), deg=1)
-        plot_edge([region, otsu_map, otsu_filt, otsu_edges], edge_coeffs, suptitle=res.corner)
-        edge_angle = np.abs(np.rad2deg(np.arctan(edge_coeffs[0])))
+        # エッジポイントから直線フィッティング
+        edge_coeffs = np.polyfit(*reversed(edge_coords), deg=1)     # エッジの点群から直線フィッティング。  deg=1: 1次近似  reversed:リスト反転
+        plot_edge([region, otsu_map, otsu_filt, otsu_edges], edge_coeffs, suptitle=res.corner)  # plot_edgeを呼ぶ(デバッグ時に動作)。各種フィルタリングの結果や得られた直線を描画する？
+        edge_angle = np.abs(np.rad2deg(np.arctan(edge_coeffs[0])))  # aran→角度計算 rad2deg→単位degree  abs→絶対値で一意に角度決める
         enforce(min_angle < edge_angle < max_angle, "{}: Edge angle must be [{}, {}] degrees; was {:.1f}."
-                .format(prefix, min_angle, max_angle, edge_angle))
-        prompt("Review the {} edge plots, then press Enter to continue.".format(res.corner.lower()))
+                .format(prefix, min_angle, max_angle, edge_angle))  # 角度が指定の範囲を逸脱した場合エラー
+        prompt("Review the {} edge plots, then press Enter to continue.".format(res.corner.lower()))    # デバッグ時：「エッジ描画した」「Enterで次へ」
 
         # extract EDGE_WIDTH pixels from each scanline, centered on the detected edge
         px = np.poly1d(edge_coeffs, variable="x")  # y = ax + b  <==> x = (y - b) / a
