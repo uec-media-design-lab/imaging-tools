@@ -344,30 +344,30 @@ def plot_lsf(images, curves, titles, suptitle):     # 画像データ, グラフ
         pp.tight_layout()       # グラフ自動成型
         pp.show(block=False)    # グラフ描画(block=Falseで処理は先に進められる)
 
-# エッジ描画
+# エッジ描画。デバッグ時、ROI選択処理直後に出てくるエッジ関連の図
 def plot_edge(images, edge_coeffs=None, suptitle=None):
     # plots the given list of images on separate subplots, then optionally overlays each
     # subplot with a red line representing the given linear edge equation (y = ax + b)
     if DEBUG:   # デバッグ時に実行
-        ncols = len(images)
-        roih, roiw = images[0].shape
-        fig, axes = pp.subplots(num="edges", nrows=1, ncols=ncols, sharey=True, squeeze=False, clear=True, figsize=(17,9), dpi=110)
-        fig.canvas.set_window_title("slanted-edge-mtf: {} edge detection".format(suptitle))
-        axes = np.array(fig.axes)
-        axes = axes.flatten()
-        for ax, img in zip(axes, images):
-            ax.imshow(img, cmap="gray")
-            ax.xaxis.tick_top()
-            if edge_coeffs is not None:
-                p = np.poly1d(edge_coeffs)
-                xp = np.linspace(0, roiw, roiw * 4)
+        ncols = len(images)             # カラム数指定
+        roih, roiw = images[0].shape    # ROIの縦横サイズ取得
+        fig, axes = pp.subplots(num="edges", nrows=1, ncols=ncols, sharey=True, squeeze=False, clear=True, figsize=(17,9), dpi=110) # edgesの名でグラフ用意
+        fig.canvas.set_window_title("slanted-edge-mtf: {} edge detection".format(suptitle))     # ウィンドウ名セット
+        axes = np.array(fig.axes)   # 軸作成？
+        axes = axes.flatten()       # 多次元配列を一元化
+        for ax, img in zip(axes, images):   # それぞれの画像に対して
+            ax.imshow(img, cmap="gray")     # グレスケで画像表示
+            ax.xaxis.tick_top()             # X軸のラベルを上に持ってくる(下ではない)
+            if edge_coeffs is not None:     # coeffsがある場合)(直線フィッティングの結果がある場合)
+                p = np.poly1d(edge_coeffs)              # coeffsを一次近似
+                xp = np.linspace(0, roiw, roiw * 4)     # この辺りでROIに入ってるXとYの直線のペアを探してる？
                 yp = p(xp)
-                inside = (0 <= yp) & (yp < roih)
+                inside = (0 <= yp) & (yp < roih)        # ypが特定領域に入ってるか
                 xp_roi = xp[inside]
                 yp_roi = yp[inside]
-                ax.plot(xp_roi, yp_roi, color="red", scalex=False, scaley=False)
-        pp.tight_layout()
-        pp.show(block=False)
+                ax.plot(xp_roi, yp_roi, color="red", scalex=False, scaley=False)    # 直線描画
+        pp.tight_layout()       # 自動成型
+        pp.show(block=False)    # 表示
 
 
 def prompt(message):    # デバッグ時に引数のメッセージ表示する簡単な関数
