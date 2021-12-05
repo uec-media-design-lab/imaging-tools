@@ -210,10 +210,12 @@ def mtf(config, results, filename, outputDir):
     mkdir(outputDir + "/Result_csv")
     #########################
 
-    for idx, res in enumerate(results):
-        if res.success:
-            label = "{}: MTF50 = {:.3f} cycles/pixel = {:.1f} pixels/cycle".format(res.corner, res.mtf50, 1.0 / res.mtf50)
+    # それぞれの結果に対してMTFグラフのプロットと結果出力をする
+    for idx, res in enumerate(results):     # enumerate: インデックス番号,要素を同時に代入できる関数
+        if res.success:                     # 解析成功して無事MTFが計算できたときに実行
+            label = "{}: MTF50 = {:.3f} cycles/pixel = {:.1f} pixels/cycle".format(res.corner, res.mtf50, 1.0 / res.mtf50)  # MTF値が0.5になる点の空間周波数をラベル
             ### save_mtfData
+            # 改良部：MTFと空間周波数の関係をCSVファイルに出力
             csvName = outputDir + "/Result_csv/{}.csv".format(barename)
             data = [np.linspace(0,1,len(res.mtfs)), res.mtfs]
             data = list(zip(*data))# 転置
@@ -224,19 +226,20 @@ def mtf(config, results, filename, outputDir):
             file.close()
             ###
             
-            plot_mtf(res.mtfs, res.mtf50, res.mtf20, label=label, color=pp.cm.cool(idx / 4))
+            plot_mtf(res.mtfs, res.mtf50, res.mtf20, label=label, color=pp.cm.cool(idx / 4))    # MTFグラフの描画(スムージングしたもの)
             if DEBUG:  # plot the unfiltered MTF only in debug mode
-                plot_mtf(res.mtf, res.mtf50, res.mtf20, color=pp.cm.cool(idx / 4), linestyle=":", linewidth=0.5)
+                plot_mtf(res.mtf, res.mtf50, res.mtf20, color=pp.cm.cool(idx / 4), linestyle=":", linewidth=0.5)    # デバッグ時はスムージング処理を施していないMTF曲線も描画する
 
-    roi_filename = outputDir + "/Result_fig/" + "{}-ROI.png".format(barename)
-    lsf_filename = outputDir + "/Result_fig/" + "{}-LSF.png".format(barename)
-    mtf_filename = outputDir + "/Result_fig/" + "{}-MTF.png".format(barename)
-    pp.title("MTF - {}".format(basename))
-    pp.show(block=False)
-    pp.figure("mtf")
-    pp.savefig(mtf_filename)
-    pp.figure("image")
-    pp.savefig(roi_filename)
+    roi_filename = outputDir + "/Result_fig/" + "{}-ROI.png".format(barename)   # ROI描画グラフの保存先
+    lsf_filename = outputDir + "/Result_fig/" + "{}-LSF.png".format(barename)   # LSF描画グラフの保存先
+    mtf_filename = outputDir + "/Result_fig/" + "{}-MTF.png".format(barename)   # MTF描画グラフの保存先
+    pp.title("MTF - {}".format(basename))   # タイトル設定
+    pp.show(block=False)                    # 表示
+    pp.figure("mtf")                        # plot_mtf関数で用意したMTF曲線のグラフを用意(デバッグモードではスムージングの代わりに生MTF曲線が代わりに保存される)
+    pp.savefig(mtf_filename)                # MTFグラフの保存
+    pp.figure("image")                      # mtf関数のはじめの方で用意したグラフを指定
+    pp.savefig(roi_filename)                # ROI描画したグラフの保存
+    # (LSF曲線はデフォで保存してない。デバッグ時は"curves"の名でグラフ描画しているので、欲しくなったらそれを使う)
     success = np.all([res.success for res in results])
     return success
 
