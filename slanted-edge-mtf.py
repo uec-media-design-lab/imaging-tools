@@ -296,10 +296,11 @@ def canny(image):
 # フーリエ変換
 def fft(lsf):
     # FFT of line spread function
-    fft = np.fft.fft(lsf, 1024)  # even 256 would be enough
-    fft = fft[:len(fft) // 2]    # drop duplicate half
-    fft = np.abs(fft)            # |a + bi| = sqrt(a² + b²)
-    fft = fft / fft.max()        # normalize to [0, 1]
+    # 実際はフーリエ変換後に絶対値とって正規化している：つまりLSFからMTF計算するプロセスをここで完結させてる
+    fft = np.fft.fft(lsf, 1024)  # even 256 would be enough     # np.fft.fft(データ, 個数(オプション))  256で十分らしいが…
+    fft = fft[:len(fft) // 2]    # drop duplicate half          # 半分にカット
+    fft = np.abs(fft)            # |a + bi| = sqrt(a² + b²)     # 絶対値を取得
+    fft = fft / fft.max()        # normalize to [0, 1]          # 正規化
     return fft
 
 # MTFグラフの描画
