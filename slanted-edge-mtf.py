@@ -166,12 +166,13 @@ def mtf(config, results, filename, outputDir):
         #    └ abcde ┘
 
         # store results
-        res.edge_straight = edge_straight
-        res.edge_region = region
-        res.edge_mask = otsu_filt
-        res.edge_coeffs = edge_coeffs
-        res.edge_angle = edge_angle
-        res.edge_yspan = roih
+        # 結果の格納。MTFResultsクラスのresultsのリストの要素、resのメンバー変数にそれぞれの結果を代入する
+        res.edge_straight = edge_straight   # 斜めったエッジを縦に戻した時の各信号地
+        res.edge_region = region            # ROIで切り取った画像片
+        res.edge_mask = otsu_filt           # 大津二値化+細かなノイズ除去の結果
+        res.edge_coeffs = edge_coeffs       # 直線フィッティングの結果
+        res.edge_angle = edge_angle         # エッジの角度
+        res.edge_yspan = roih               # ROI内の有効なエッジ高さ(スキャンライン数)
 
     pp.close("edges")
 
