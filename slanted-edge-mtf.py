@@ -323,26 +323,26 @@ def plot_mtf(mtf, mtf50, mtf20, **kwargs):  # MTFデータ, MTF0.5の空間周�
     pp.legend()                 # 凡例表示(凡例の数値はplot_mtf呼び出すときのに指定してある。kwargsに入ってる)
 
 # LSFグラフの描画
-def plot_lsf(images, curves, titles, suptitle):
+def plot_lsf(images, curves, titles, suptitle):     # 画像データ, グラフデータ, グラフのタイトル, 画像のタイトル(全部リストで指定)
     if DEBUG:   # デバッグ時に実行される
-        ncols = len(curves) + len(images)
-        fig, axes = pp.subplots(num="curves", nrows=1, ncols=ncols, squeeze=False, clear=True, figsize=(17,9), dpi=110)
-        fig.canvas.set_window_title("slanted-edge-mtf: {} ESF & LSF curves".format(suptitle))
-        axes = axes.flatten()
-        for i, img in enumerate(images):
-            axes[i].imshow(img)
-            axes[i].axvline(img.shape[1] / 2, color="red", linewidth=0.7)
-            axes[i].set_title(suptitle)
-        axes = axes[len(images):]
-        for ax, curve, title in zip(axes, curves, titles):
-            ax.grid(which="both", linestyle=":")
-            ax.plot(curve * 255)
-            ax.axvline(curve.shape[0] / 2, color="red", linewidth=0.7)
-            ax.set_title(title)
-            ax.set_xlabel("pixel")
-            ax.set_ylabel("DN")
-        pp.tight_layout()
-        pp.show(block=False)
+        ncols = len(curves) + len(images)   # カラム数設定
+        fig, axes = pp.subplots(num="curves", nrows=1, ncols=ncols, squeeze=False, clear=True, figsize=(17,9), dpi=110) # curvesの名でfig用意
+        fig.canvas.set_window_title("slanted-edge-mtf: {} ESF & LSF curves".format(suptitle))   # ウィンドウ名指定
+        axes = axes.flatten()   # 多次元配列を一元化
+        for i, img in enumerate(images):    # それぞれの画像に対して
+            axes[i].imshow(img)             # 対応する軸にimshow
+            axes[i].axvline(img.shape[1] / 2, color="red", linewidth=0.7)   # それぞれのグラフの中央に垂直線プロット
+            axes[i].set_title(suptitle)     # 画像のタイトルセット
+        axes = axes[len(images):]           # グラフ描画のための軸準備
+        for ax, curve, title in zip(axes, curves, titles):              # それぞれのグラフに対して
+            ax.grid(which="both", linestyle=":")                        # グリッド表示(縦横、点線)
+            ax.plot(curve * 255)                                        # カーブを255倍してプロット(元々0--1で指定？)
+            ax.axvline(curve.shape[0] / 2, color="red", linewidth=0.7)  # グラフ中央に垂直線描画
+            ax.set_title(title)                                         # タイトル
+            ax.set_xlabel("pixel")                                      # X軸：ピクセル
+            ax.set_ylabel("DN")                                         # Y軸：DN(Digital Number?)
+        pp.tight_layout()       # グラフ自動成型
+        pp.show(block=False)    # グラフ描画(block=Falseで処理は先に進められる)
 
 # エッジ描画
 def plot_edge(images, edge_coeffs=None, suptitle=None):
