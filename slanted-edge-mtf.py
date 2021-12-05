@@ -304,23 +304,23 @@ def fft(lsf):
     return fft
 
 # MTFグラフの描画
-def plot_mtf(mtf, mtf50, mtf20, **kwargs):
-    fig = pp.figure(num="mtf", figsize=(17,9), dpi=110)
-    fig.canvas.set_window_title("slanted-edge-mtf: MTF curves")
-    pp.grid(linestyle=":")
-    pp.xlim([0, 0.75])
-    pp.ylim([0, 1])
-    pp.xticks(np.arange(0, 0.76, 0.05))
-    pp.yticks(np.arange(0, 1.01, 0.05))
-    pp.plot(np.linspace(0, 1, len(mtf)), mtf, **kwargs)
-    pp.axvline(x=0.5, linestyle=":", linewidth=0.1, color="red")
-    pp.axhline(y=0.5, linestyle=":", linewidth=0.1, color="red")
-    pp.text(0.505, 0.75, "Nyquist limit", color="red", rotation="vertical")
-    pp.text(0.650, 0.51, "MTF50", color="red")
-    kwargs["linestyle"] = "--"
-    pp.xlabel("cycles/pixel")
-    pp.ylabel("MTF")
-    pp.legend()
+def plot_mtf(mtf, mtf50, mtf20, **kwargs):  # MTFデータ, MTF0.5の空間周波数, MTF0.2の空間周波数, その他オプション
+    fig = pp.figure(num="mtf", figsize=(17,9), dpi=110)         # 名前：mtf, 縦横比17:9, dpi110
+    fig.canvas.set_window_title("slanted-edge-mtf: MTF curves") # ウィンドウ名セット
+    pp.grid(linestyle=":")                                                  # グリッドを点線表示
+    pp.xlim([0, 0.75])                                                      # X軸最大値：0.75
+    pp.ylim([0, 1])                                                         # Y軸最大値：1
+    pp.xticks(np.arange(0, 0.76, 0.05))                                     # グラフX軸の目盛
+    pp.yticks(np.arange(0, 1.01, 0.05))                                     # グラフY軸の目盛
+    pp.plot(np.linspace(0, 1, len(mtf)), mtf, **kwargs)                     # グラフプロット(MTFデータと)
+    pp.axvline(x=0.5, linestyle=":", linewidth=0.1, color="red")            # x=0.5の位置に垂直線描画(赤い点線)
+    pp.axhline(y=0.5, linestyle=":", linewidth=0.1, color="red")            # y=0.5の位置に水平線描画(赤い点線)
+    pp.text(0.505, 0.75, "Nyquist limit", color="red", rotation="vertical") # x=0.5の位置にナイキスト周波数の旨記述
+    pp.text(0.650, 0.51, "MTF50", color="red")                              # y=0.5の位置にMTFが0.5である旨記述
+    kwargs["linestyle"] = "--"  # linestyleだけ直線に変更
+    pp.xlabel("cycles/pixel")   # x軸のラベル：空間周波数
+    pp.ylabel("MTF")            # y軸のラベル：MTF
+    pp.legend()                 # 凡例表示(凡例の数値はplot_mtf呼び出すときのに指定してある。kwargsに入ってる)
 
 # LSFグラフの描画
 def plot_lsf(images, curves, titles, suptitle):
