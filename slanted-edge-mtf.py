@@ -29,8 +29,8 @@ DEFAULT_CONFIG = {
     "roi-bottom-left": [],
     "roi-bottom-right": [],
     "edge-width": EDGE_WIDTH,
-    "edge-min-angle": 78,
-    "edge-max-angle": 88,
+    "edge-min-angle": 78, #エッジの角度設定　範囲を広くすることでボケが大きい画像でもMTFを取ることができる
+    "edge-max-angle": 88, 
 }
 
 # MTF解析結果をひとつのクラスにまとめて管理
@@ -381,7 +381,7 @@ def enforce(expression, message_if_false, run_if_false=None):
         if run_if_false is not None:# エラー起こった時に呼ぶ関数(引数で指定されていれば)を呼ぶ
             run_if_false()
         prompt("Processing failed. Press Enter to quit...") # 一個うえで定義されてる関数。DEBUG時はこの文表示して閉じる
-        sys.exit(1)                 # プログラム異常終了
+        sys.exit(1)                 # プログラム異常終了　続けてMTF測定を行う場合はコメントアウトする
 
 # ROI選択用クラス
 class ROI_selector(object):
