@@ -495,7 +495,7 @@ def main():
     DEBUG = argv.exists("--debug")      # オプションに--debugがあればDEBUG変数をTrueに切り替え。デバッグ用の動作に入る。便利そう
     quiet = argv.exists("--quiet")      # quietをTrueに変更(あれば)。quietは最後の「Press Enter to quit」にだけ使ってる
     json_in = argv.stringval("--load", default=None)    # --loadがあるとき、直後の文字列を格納(ロード元のjsonファイル)
-    json_out = argv.stringval("--save", default=None)   # --loadがあるとき、直後の文字列を格納(セーブ先のjsonファイル)
+    json_out = argv.stringval("--save", default=None)   # --saveがあるとき、直後の文字列を格納(セーブ先のjsonファイル)
     corners = ["center", "top-left", "top-right", "bottom-left", "bottom-right"]
     roi = argv.stringval("--roi", default="center", accepted=corners+["all"])   # --roiの直後を格納(あれば)。acceptedは選択肢っぽい
     showHelp = argv.exists("--help")
