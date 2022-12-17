@@ -219,7 +219,7 @@ def mtf(config, results, filename, outputDir):
             csvName = outputDir + "/Result_csv/{}.csv".format(barename)
             data = [np.linspace(0,1,len(res.mtfs)), res.mtfs]
             data = list(zip(*data))# 転置
-            file = open(csvName, 'w')
+            file = open(csvName, 'w', newline="")
             writer = csv.writer(file)
             writer.writerow(["cycles/px", "mtf"])
             writer.writerows(data)
