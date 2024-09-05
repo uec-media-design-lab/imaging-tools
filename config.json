@@ -1,0 +1,8 @@
+{ "edge-max-angle": 88,
+  "edge-min-angle": 78,
+  "edge-width": 99,
+  "roi-bottom-left": [],
+  "roi-bottom-right": [],
+  "roi-center": [np.uint32(2102), np.uint32(2313), np.uint32(2825), np.uint32(3173)],
+  "roi-top-left": [],
+  "roi-top-right": []}

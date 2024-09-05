@@ -33,7 +33,7 @@ DEFAULT_CONFIG = {
     "edge-max-angle": 88, 
 }
 
-IMAGE_FORMAT = "exr"#"tif"
+IMAGE_FORMAT = "tif"
 
 # MTF解析結果をひとつのクラスにまとめて管理
 class MTFResults(object):
@@ -329,7 +329,7 @@ def plot_lsf(images, curves, titles, suptitle):     # 画像データ, グラフ
     if DEBUG:   # デバッグ時に実行される
         ncols = len(curves) + len(images)   # カラム数設定
         fig, axes = pp.subplots(num="curves", nrows=1, ncols=ncols, squeeze=False, clear=True, figsize=(17,9), dpi=110) # curvesの名でfig用意
-        fig.canvas.managerset_window_title("slanted-edge-mtf: {} ESF & LSF curves".format(suptitle))   # ウィンドウ名指定
+        fig.canvas.manager.set_window_title("slanted-edge-mtf: {} ESF & LSF curves".format(suptitle))   # ウィンドウ名指定
         axes = axes.flatten()   # 多次元配列を一元化
         for i, img in enumerate(images):    # それぞれの画像に対して
             axes[i].imshow(img)             # 対応する軸にimshow
