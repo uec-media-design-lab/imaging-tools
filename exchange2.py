@@ -1,7 +1,7 @@
 import pandas as pd
 
-img_path = "existif2/Result_csv"
-csv_file_path = img_path + '/D=45.csv'  # CSVファイルのパス
+img_path = "retest/Result_csv"
+csv_file_path = img_path + '/D=30,θ=5.csv'  # CSVファイルのパス
 
 # パラメータを設定
 sensor_width_mm = 35  # センサーの横幅 [mm] α7Ⅲ → 35㎜
