@@ -13,30 +13,30 @@ import matplotlib.pyplot as pp   # pip install matplotlib
 import matplotlib.widgets        # pip install matplotlib
 import argv                      # local import
 import csv
+from natsort import natsorted
 
 DEBUG = False
+RESIZE = False
+AUTOCORRECT = False
+OUTPUTBASE = ""
+BARE = ""
 
 EDGE_WIDTH = 99
 MIN_ROI_WIDTH = 100
-MIN_ROI_HEIGHT = 50
+MIN_ROI_HEIGHT = 9 # ほんとは50
 MIN_ROI_SIZE = (MIN_ROI_HEIGHT, MIN_ROI_WIDTH)
-
-FIXED_WIDTH = 300
-FIXED_HEIGHT = 300
-
+csvAllData = []
 
 DEFAULT_CONFIG = {
-    "roi-center": [250,550,910,1210],  # [miny, maxy, minx, maxx]
+    "roi-center": [],  # [miny, maxy, minx, maxx]
     "roi-top-left": [],
     "roi-top-right": [],
     "roi-bottom-left": [],
     "roi-bottom-right": [],
     "edge-width": EDGE_WIDTH,
-    "edge-min-angle": 78, #エッジの角度設定　範囲を広くすることでボケが大きい画像でもMTFを取ることができる
-    "edge-max-angle": 88, 
+    "edge-min-angle": 78,
+    "edge-max-angle": 99,
 }
-
-IMAGE_FORMAT = "exr"#"tif"
 
 # MTF解析結果をひとつのクラスにまとめて管理
 class MTFResults(object):
@@ -73,6 +73,12 @@ class MTFResults(object):
 
 # MTFの本体的関数
 def mtf(config, results, filename, outputDir):
+    
+    #########################
+    # mkdir
+    mkdir(outputDir + "/Result_fig")
+    mkdir(outputDir + "/Result_csv")
+    #########################
     print("Configuration:")
     pprint.pprint(config, indent=2) # configの内容をインデント幅2で、改行して見やすく表示している
     min_angle = config["edge-min-angle"]    # config(辞書型変数)の   edge-min-angleを取得
@@ -109,6 +115,7 @@ def mtf(config, results, filename, outputDir):
         enforce(roi_valid, "{0}: Selected region {1} is exceeding image boundaries ({3} x {2})."
                 .format(prefix, roi, *image.shape))     # 直前行がFalseの場合エラー
         region = image[roi[0]:roi[1], roi[2]:roi[3]]    # ROIで切り取り
+        region = normalize(region)                      # ROIでもう一度正規化(直接光の影響をなくす)
         roih, roiw = region.shape                       # ROIのサイズ取得 => roih, roiw
         roi_valid = np.all(region.shape > MIN_ROI_SIZE) # 有効な場合：ROIサイズが冒頭で定義したサイズ以上
         err_plotter = lambda: plot_edge([region], suptitle=res.corner)  # 引数なしのラムダ式。plot_edgeを引数[region]で呼ぶ。(ラムダ式の意味ある？)
@@ -137,8 +144,14 @@ def mtf(config, results, filename, outputDir):
         edge_coeffs = np.polyfit(*reversed(edge_coords), deg=1)     # エッジの点群から直線フィッティング。  deg=1: 1次近似  reversed:リスト反転
         plot_edge([region, otsu_map, otsu_filt, otsu_edges], edge_coeffs, suptitle=res.corner)  # plot_edgeを呼ぶ(デバッグ時に動作)。各種フィルタリングの結果や得られた直線を描画する？
         edge_angle = np.abs(np.rad2deg(np.arctan(edge_coeffs[0])))  # aran→角度計算 rad2deg→単位degree  abs→絶対値で一意に角度決める
-        enforce(min_angle < edge_angle < max_angle, "{}: Edge angle must be [{}, {}] degrees; was {:.1f}."
+        if AUTOCORRECT==False:
+            enforce(min_angle < edge_angle < max_angle, "{}: Edge angle must be [{}, {}] degrees; was {:.1f}."
                 .format(prefix, min_angle, max_angle, edge_angle))  # 角度が指定の範囲を逸脱した場合エラー
+        else:
+            if (min_angle < edge_angle < max_angle)==False:
+                print("edge angle was", edge_angle, ", so fixed to other angle")
+                edge_angle = 85
+        print("edge angle:{:.1f}".format(edge_angle))
         prompt("Review the {} edge plots, then press Enter to continue.".format(res.corner.lower()))    # デバッグ時：「エッジ描画した」「Enterで次へ」
 
         # extract EDGE_WIDTH pixels from each scanline, centered on the detected edge
@@ -189,7 +202,7 @@ def mtf(config, results, filename, outputDir):
             # compute Edge Spread Function (ESF), Line Spread Function (LSF), and filtered LSF
             edge = res.edge_straight
             res.esf = esf = np.mean(edge, axis=0)               # 行列のy方向に平均とってESFを出す
-            res.esf = esf = scipy.signal.wiener(esf, 5)[3:-3]   # wienerフィルタでノイズ除去
+            # res.esf = esf = scipy.signal.wiener(esf, 5)[3:-3]   # wienerフィルタでノイズ除去
             res.lsf = lsf = np.gradient(esf)[1:]                # 勾配計算(微分)してLSFを出す
             res.lsfs = lsfs = scipy.signal.wiener(lsf, 7)[4:-4] # wienerフィルタ重ね掛けでノイズ除去 => LSFS
             plot_lsf([edge], [esf, lsf, lsfs], ["Edge Profile", "LSF", "Filtered LSF"], res.corner)     # デバッグ時：ESF, LSF, LSFSをプロット
@@ -210,12 +223,6 @@ def mtf(config, results, filename, outputDir):
             res.success = True
 
     pp.close("lsf")
-    
-    #########################
-    # mkdir
-    mkdir(outputDir + "/Result_fig")
-    mkdir(outputDir + "/Result_csv")
-    #########################
 
     # それぞれの結果に対してMTFグラフのプロットと結果出力をする
     for idx, res in enumerate(results):     # enumerate: インデックス番号,要素を同時に代入できる関数
@@ -226,6 +233,8 @@ def mtf(config, results, filename, outputDir):
             csvName = outputDir + "/Result_csv/{}.csv".format(barename)
             data = [np.linspace(0,1,len(res.mtfs)), res.mtfs]
             data = list(zip(*data))# 転置
+            global csvAllData
+            csvAllData.append(res.mtfs)
             file = open(csvName, 'w')
             writer = csv.writer(file)
             writer.writerow(["cycles/px", "mtf"])
@@ -258,15 +267,32 @@ def imread(filename, verbose=True):
     # imgio参考：https://github.com/toaarnio/imgio/blob/master/imgio/imgio.py
     # verbose：Trueにすると色々ログ出力するっぽい
     image, maxval = imgio.imread(filename, verbose=verbose)
-    image = np.dot(image, [0.2125, 0.7154, 0.0721])  # RGB => Luminance
+    if image.shape[2]==1:
+        image = np.dot(image, [1.0])
+    elif image.shape[2]==3:
+        image = np.dot(image, [0.2125, 0.7154, 0.0721])  # RGB => Luminance
+        
+    # print(maxval)
+    # if maxval==float('inf'):
+    #     maxval == 64000
+        
+    # pp.figure()
+    # pp.imshow(image)
+    # pp.show()
+    # input()
     
     # LuminanceとY値は微妙に違うらしい。
     # RGB => Luminance:     0.2125*R + 0.7154*G + 0.0721*B  
     # RGB => Y:             0.299*R + 0.587*G + 0.114*B     ITU-RBT.709(Rec.709)より
     
-    # ここで輝度正規化している。
-    image = image / maxval
-    image = normalize(image)
+    # # ここで輝度正規化している。
+    # image = image / maxval
+    # image = normalize(image)
+    
+    # RESIZEがTrueなら半分にする
+    if RESIZE:
+        print("resized")
+        image = cv2.resize(image, dsize=None, fx=0.5, fy=0.5)
     return image
 
 # 画像の正規化
@@ -284,8 +310,8 @@ def otsu(image):
     # Otsu's binary thresholding
     # ガウスぼかし：ノイズ低減
     image = cv2.GaussianBlur(image, (5, 5), 0)  # simple noise removal
-    image = (image * 255).astype(np.uint8)      # [0, 1] => [0, 255]
-    otsu_thr, otsu_map = cv2.threshold(image, 0, 255, cv2.THRESH_OTSU)  # 大津の二値化
+    image = (image * 65535).astype(np.uint16)      # [0, 1] => [0, 65535]
+    otsu_thr, otsu_map = cv2.threshold(image, 0, 65535, cv2.THRESH_OTSU)  # 大津の二値化
     return otsu_map
 
 # 二値化画像に対しmorphologicalフィルタリング
@@ -307,7 +333,7 @@ def canny(image):
 def fft(lsf):
     # FFT of line spread function
     # 実際はフーリエ変換後に絶対値とって正規化している：つまりLSFからMTF計算するプロセスをここで完結させてる
-    fft = np.fft.fft(lsf, 1024)  # even 256 would be enough     # np.fft.fft(データ, 個数(オプション))  256で十分らしいが…
+    fft = np.fft.fft(lsf, 2048)  # even 256 would be enough     # np.fft.fft(データ, 個数(オプション))  256で十分らしいが…
     fft = fft[:len(fft) // 2]    # drop duplicate half          # 半分にカット
     fft = np.abs(fft)            # |a + bi| = sqrt(a² + b²)     # 絶対値を取得
     fft = fft / fft.max()        # normalize to [0, 1]          # 正規化
@@ -382,9 +408,9 @@ def plot_edge(images, edge_coeffs=None, suptitle=None):
 
 
 def prompt(message):    # デバッグ時に引数のメッセージ表示する簡単な関数
-    #if DEBUG:
-    #    input(message)  # input関数：文字表示しつつ、エンターキーで先に進むのを1行で済ませている
-    pass
+    if DEBUG:
+        # input(message)  # input関数：文字表示しつつ、エンターキーで先に進むのを1行で済ませている
+        pass
 
 
 def enforce(expression, message_if_false, run_if_false=None):
@@ -393,7 +419,15 @@ def enforce(expression, message_if_false, run_if_false=None):
         if run_if_false is not None:# エラー起こった時に呼ぶ関数(引数で指定されていれば)を呼ぶ
             run_if_false()
         prompt("Processing failed. Press Enter to quit...") # 一個うえで定義されてる関数。DEBUG時はこの文表示して閉じる
-        sys.exit(1)                 # プログラム異常終了　続けてMTF測定を行う場合はコメントアウトする
+        global csvAllData
+        csvAllData = list(zip(*csvAllData))# 転置
+        # file = open("./tiff/reflite" + "/Result_csv/all.csv", 'w')
+        # writer = csv.writer(file)
+        # writer.writerows(csvAllData)
+        # file.close()
+        pp.figure("image")
+        pp.savefig(OUTPUTBASE + "/Result_fig/" + "{}-ROI.png".format(BARE))
+        sys.exit(1)                 # プログラム異常終了
 
 # ROI選択用クラス
 class ROI_selector(object):
@@ -404,10 +438,7 @@ class ROI_selector(object):
     def run(self, corner):          # run：ROI選択本体
         self.fig, self.ax = pp.subplots(num="selector", figsize=(17,9), dpi=110)    # num:識別番号, figsize:画像サイズ(縦横比っぽい), dpi:1インチあたりのピクセル数
         self.fig.canvas.manager.set_window_title("slanted-edge-mtf: Edge Region Selector")
-        self.ax.imshow(self.image, cmap="gray")
-        
-        #self.rect = pp.Rectangle((0, 0), FIXED_WIDTH, FIXED_HEIGHT, fill=False, edgecolor='red')
-        #self.ax.add_patch(self.rect)
+        self.ax.imshow(self.image, cmap="jet")
         """
         RectangleSelector   https://matplotlib.org/stable/api/widgets_api.html#matplotlib.widgets.RectangleSelector
         第一引数：   軸
@@ -442,14 +473,6 @@ class ROI_selector(object):
     def box_select_callback(self, eclick, erelease):    # 領域選択時(マウスホールド後)に呼ばれる関数
         x1, y1 = eclick.xdata, eclick.ydata             # 始点の座標を格納
         x2, y2 = erelease.xdata, erelease.ydata         # 終点の座標を格納
-        #self.rect.set_xy((x1, y1))
-        #self.rect.set_width(FIXED_WIDTH)
-        #self.rect.set_height(FIXED_HEIGHT)
-        #self.fig.canvas.draw()
-        
-        #self.roi = np.array([y1, y1 + 200, x1, x1 + 200]).round().astype(np.uint32)
-
-        
         self.roi = np.array([y1, y2, x1, x2]).round().astype(np.uint32) # ここで32bitのintに変換
 
     def event_exit_callback(self, event):
@@ -499,7 +522,7 @@ def mkfilelist(folderpath, ext):
         if fext=="."+ext:
             res.append(folderpath + "/" + fbase + fext)
             res2.append(fbase)
-    return res, res2
+    return natsorted(res), natsorted(res2)
 
 # ディレクトリ作成
 def mkdir(directoryPath):
@@ -515,6 +538,8 @@ def outputFileCheck(filePath):
 
 def main():
     global DEBUG                        # grobal XXX: グローバル変数の宣言
+    global RESIZE
+    global AUTOCORRECT
     DEBUG = argv.exists("--debug")      # オプションに--debugがあればDEBUG変数をTrueに切り替え。デバッグ用の動作に入る。便利そう
     quiet = argv.exists("--quiet")      # quietをTrueに変更(あれば)。quietは最後の「Press Enter to quit」にだけ使ってる
     json_in = argv.stringval("--load", default=None)    # --loadがあるとき、直後の文字列を格納(ロード元のjsonファイル)
@@ -522,6 +547,8 @@ def main():
     corners = ["center", "top-left", "top-right", "bottom-left", "bottom-right"]
     roi = argv.stringval("--roi", default="center", accepted=corners+["all"])   # --roiの直後を格納(あれば)。acceptedは選択肢っぽい
     showHelp = argv.exists("--help")
+    RESIZE = argv.exists("--resize")    # 写真用。解像度半分にしてシミュレーションと統一する
+    AUTOCORRECT = argv.exists("--autocorrect")  # 範囲からそれる場合に使用。手動で調整
     argv.exitIfAnyUnparsedOptions()     # 例外処理的な。不要なオプションある場合に動く？
     if showHelp or len(sys.argv) < 2:   # --help使用か引数不足なとき：使い方表示してプログラム終了
         print("Usage: slanted-edge-mtf.py [options] image.{ppm|png|jpg}")
@@ -541,11 +568,10 @@ def main():
         sys.exit(-1)
 
     ########################################
-    filepathlist, filelist = mkfilelist(sys.argv[1], IMAGE_FORMAT) # (改変して自作関数挿入)第一引数のフォルダ名からtif形式のファイルリストを作成
+    filepathlist, filelist = mkfilelist(sys.argv[1], "exr") # (改変して自作関数挿入)第一引数のフォルダ名からtif形式のファイルリストを作成
     outputDir = mkdir(sys.argv[1])                          # 自作関数：格納先フォルダが無ければ作る
     global OUTPUTBASE
     OUTPUTBASE = outputDir
-    
     for i in range(len(filelist)):                          # ファイルリスト一つずつ取って処理
         
         filename = filepathlist[i]
@@ -559,11 +585,11 @@ def main():
             key = "roi-{}".format(corner)  # 'top-left' => 'roi-top-left'
             config[key] = []
 
-        #if json_in is None:                     # --loadが無い場合はGUI使ってROI選択
-        #    selector = ROI_selector(filename)   # ここでROI選択
-        #    for roi_name in selected_rois:
-        #        key = "roi-{}".format(roi_name)  # 'top-left' => 'roi-top-left'
-        #        config[key] = selector.run(roi_name)
+        if json_in is None:                     # --loadが無い場合はGUI使ってROI選択
+            selector = ROI_selector(filename)   # ここでROI選択
+            for roi_name in selected_rois:
+                key = "roi-{}".format(roi_name)  # 'top-left' => 'roi-top-left'
+                config[key] = selector.run(roi_name)
 
         print("=" * 40, os.path.basename(filename), "=" * 40)           # (自分で追加)処理中のファイル名表示
         results = [MTFResults(roi_name) for roi_name in selected_rois]  # MTF解析結果格納用クラスのリスト
@@ -579,7 +605,15 @@ def main():
         pp.close("all") # グラフ閉じる
 
         save_config(json_out, config)   # (--saveあれば)jsonファイルに設定書き出し
-
+    global csvAllData
+    csvAllData = list(zip(*csvAllData))# 転置
+    mkdir(outputDir+"/Result_csv")
+    file = open(outputDir + "/Result_csv/all.csv", 'w')
+    writer = csv.writer(file)
+    # writer.writerow("")
+    writer.writerows(csvAllData)
+    file.close()
+    
     sys.exit(0 if success else 1)
     
     """
