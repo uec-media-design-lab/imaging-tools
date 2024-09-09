@@ -23,7 +23,7 @@ MIN_ROI_SIZE = (MIN_ROI_HEIGHT, MIN_ROI_WIDTH)
 
 
 DEFAULT_CONFIG = {
-    "roi-center": [],  # [miny, maxy, minx, maxx]
+    "roi-center": [166, 420, 387, 690],  # [miny, maxy, minx, maxx]
     "roi-top-left": [],
     "roi-top-right": [],
     "roi-bottom-left": [],
@@ -33,7 +33,7 @@ DEFAULT_CONFIG = {
     "edge-max-angle": 88, 
 }
 
-IMAGE_FORMAT = "tif"
+IMAGE_FORMAT = "exr"
 
 # MTF解析結果をひとつのクラスにまとめて管理
 class MTFResults(object):
@@ -536,11 +536,11 @@ def main():
             key = "roi-{}".format(corner)  # 'top-left' => 'roi-top-left'
             config[key] = []
 
-        if json_in is None:                     # --loadが無い場合はGUI使ってROI選択
-            selector = ROI_selector(filename)   # ここでROI選択
-            for roi_name in selected_rois:
-                key = "roi-{}".format(roi_name)  # 'top-left' => 'roi-top-left'
-                config[key] = selector.run(roi_name)
+        #if json_in is None:                     # --loadが無い場合はGUI使ってROI選択
+        #    selector = ROI_selector(filename)   # ここでROI選択
+        #    for roi_name in selected_rois:
+        #        key = "roi-{}".format(roi_name)  # 'top-left' => 'roi-top-left'
+        #        config[key] = selector.run(roi_name)
 
         print("=" * 40, os.path.basename(filename), "=" * 40)           # (自分で追加)処理中のファイル名表示
         results = [MTFResults(roi_name) for roi_name in selected_rois]  # MTF解析結果格納用クラスのリスト

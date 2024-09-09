@@ -1,13 +1,13 @@
 import pandas as pd
 
-img_path = "retest/Result_csv"
-csv_file_path = img_path + '/D=30,θ=5.csv'  # CSVファイルのパス
+img_path = "kiuchismmap_sub/Result_csv"
+csv_file_path = img_path + '/D=30.csv'  # CSVファイルのパス
 
 # パラメータを設定
 sensor_width_mm = 35  # センサーの横幅 [mm] α7Ⅲ → 35㎜
 roi_px = 91770  # ROIの横幅 [ピクセル]
 
-cam_sensor_dis = 15
+cam_sensor_dis = 30
 focus_dis = 35
 
 # ピクセルサイズを計算
