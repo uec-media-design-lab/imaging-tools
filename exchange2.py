@@ -1,7 +1,7 @@
 import pandas as pd
 
-img_path = "kiuchismmap_sub/Result_csv"
-csv_file_path = img_path + '/D=30.csv'  # CSVファイルのパス
+img_path = "images/0909MTF_dis15-45/Result_csv"
+csv_file_path = img_path + '/dis-15--deg-0--gl-0--mi-0.csv'  # CSVファイルのパス
 
 # パラメータを設定
 sensor_width_mm = 35  # センサーの横幅 [mm] α7Ⅲ → 35㎜

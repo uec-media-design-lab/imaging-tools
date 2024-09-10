@@ -6,9 +6,10 @@ import enum
 import math
 import matplotlib.cm as cm
 FREQ= 1
-IMG_WIDTH_REAL = 6024
-IMG_WIDTH_CG   = 1200
-SENSOR_WIDTH   = 35.9
+IMG_WIDTH_REAL = 6024 #画像（ROI）の横幅
+IMG_WIDTH_CG   = 1200 #画像（ROI）の横幅
+IMG_WIDTH = 442
+SENSOR_WIDTH   = 36 #35.6
 LENS_FOCUS_DISTANCE = 35
 CAM_TO_IMG_DISTANCE = 300
 class ImgType(enum.IntEnum):
@@ -17,7 +18,8 @@ class ImgType(enum.IntEnum):
 
 # cycles/px -> lp/mm
 def cpm2lppmm(x, type):
-    return 1.0*x * (IMG_WIDTH_REAL if type==ImgType.REAL else IMG_WIDTH_CG) / (1.0* SENSOR_WIDTH * CAM_TO_IMG_DISTANCE / LENS_FOCUS_DISTANCE)
+    #return 1.0*x * (IMG_WIDTH_REAL if type==ImgType.REAL else IMG_WIDTH_CG) / (1.0* SENSOR_WIDTH * CAM_TO_IMG_DISTANCE / LENS_FOCUS_DISTANCE)
+    return 1.0*x * IMG_WIDTH / (1.0* SENSOR_WIDTH * CAM_TO_IMG_DISTANCE / LENS_FOCUS_DISTANCE)
 
 def getData(path, freq, ImgType):
     idx = -1
@@ -33,11 +35,11 @@ def getData(path, freq, ImgType):
     
     with open(path, 'r') as f:
         csvreader = csv.reader(f)
-        firstRow = False
+        firstRow = True
         for row in csvreader:
             if firstRow:
                 # 最初1行は取り除く
-                # firstRow=False
+                firstRow=False
                 continue
             ytmp = row
             ytmp = list(map(float, ytmp))
