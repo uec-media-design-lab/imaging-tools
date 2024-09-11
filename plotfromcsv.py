@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import csv
 
 # CSVファイルを読み込む (仮定: 各列が別のデータセットを表している)
-csv_file = 'plot/plotdismtf2.csv'  # 実際のCSVファイル名を指定
+csv_file = 'plot/plotdismtf.csv'  # 実際のCSVファイル名を指定
 
 # 各プロットに対応するリストを準備
 floating_distance = []
@@ -28,7 +28,7 @@ plt.figure()
 plt.plot(floating_distance, Real_MMAP, 'ko-', label='Real_MMAP')
 #plt.plot(floating_distance, RF_AN, 'kD:', label='RF-AN')
 plt.plot(floating_distance, Mitsuba_MMAP, 'bs-', label='Mitsuba_MMAP')
-plt.plot(floating_distance, Ours_MMAP, 'bd:', label='Ours_MMAP')
+#plt.plot(floating_distance, Ours_MMAP, 'bd:', label='Ours_MMAP')
 plt.plot(floating_distance, Blender_MMAP, 'y^-', label='Blender_MMAP')
 #plt.plot(floating_distance, Guo_RF_AN, 'y^:', label='Guo et al. (RF-AN)')
 

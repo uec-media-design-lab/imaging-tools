@@ -9,7 +9,7 @@ import glob
 import os
 
 FREQ= 1
-IMG_WIDTH_REAL = 5599 #画像の横幅
+IMG_WIDTH_REAL = 6024 #画像の横幅
 IMG_WIDTH_CG   = 1080 #画像の横幅
 IMG_WIDTH = 200
 SENSOR_WIDTH   = 36 #35.6
@@ -138,12 +138,12 @@ def createavgmtfs(datapath, lpdatas):
 def main():
     dataPath = sys.argv[1]
     #multiget(dataPath, ImgType.REAL)
-    #multiget(dataPath, ImgType.CG)
+    multiget(dataPath, ImgType.CG)
     
-    data = getData(dataPath, FREQ, ImgType.REAL)
+    #data = getData(dataPath, FREQ, ImgType.REAL)
     #data = getData(dataPath, FREQ, ImgType.CG)
     
-    print(np.average(data, axis=0))
+    #print(np.average(data, axis=0))
     
 
 
