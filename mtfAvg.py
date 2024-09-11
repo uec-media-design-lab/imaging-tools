@@ -23,8 +23,14 @@ def cpm2lppmm(x, type):
 
 def getData(path, freq, ImgType):
     idx = -1
-    f = np.linspace(0, 1, 1024)
+    f = np.linspace(0, 1, 512)
     f_lpmm = cpm2lppmm(f, ImgType)
+    #print(f_lpmm)
+    
+    #print(path.replace('.csv',"")+"_lp.csv")
+    #print(path)
+    #quit()
+    
     for i in range(len(f_lpmm)):
         if f_lpmm[i]>freq:
                 idx = i
@@ -48,6 +54,30 @@ def getData(path, freq, ImgType):
             if idx>-1 and count == idx:
                 # indexの個数分データとったので抜けだす
                 break
+            #print(ytmp)
+    #quit()
+    with open(path, 'r', newline='') as inf, open(path.replace('.csv',"")+"_lp.csv", 'w', newline='') as ouf:
+        
+        csvreader = csv.reader(inf)
+        csvwriter = csv.writer(ouf)
+        
+        #headers = next(csvreader)
+        #headers.append("lp/mm")
+        #csvwriter.writerow(headers)
+        firstRow = True
+        for i, row in enumerate(csvreader):
+            #print(row)
+            if firstRow:
+                # 最初1行は取り除く
+                row.append("lp/mm")
+                csvwriter.writerow(row)
+                firstRow=False
+                
+                continue
+            #print(row)
+            row.append(f_lpmm[i-1])
+            csvwriter.writerow(row)
+            
     return y[1:]
 
 def trimData(data, delArray):
@@ -60,8 +90,9 @@ def extractData(data, ext):
 def main():
     dataPath = sys.argv[1]
     
-    #data = getData(dataPath, FREQ, ImgType.REAL)
-    data = getData(dataPath, FREQ, ImgType.CG)
+    data = getData(dataPath, FREQ, ImgType.REAL)
+    #data = getData(dataPath, FREQ, ImgType.CG)
+    #print(data)
     
     print(np.average(data, axis=0
                      ))

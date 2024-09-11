@@ -26,7 +26,7 @@ FIXED_HEIGHT = 300
 
 
 DEFAULT_CONFIG = {
-    "roi-center": [130,330,440,640],  # [miny, maxy, minx, maxx]
+    "roi-center": [165,320,440,640],  # [miny, maxy, minx, maxx]
     "roi-top-left": [],
     "roi-top-right": [],
     "roi-bottom-left": [],
