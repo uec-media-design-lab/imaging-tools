@@ -5,6 +5,9 @@ import sys
 import enum
 import math
 import matplotlib.cm as cm
+import glob
+import os
+
 FREQ= 1
 IMG_WIDTH_REAL = 6024 #画像（ROI）の横幅
 IMG_WIDTH_CG   = 1080 #画像（ROI）の横幅
@@ -12,6 +15,9 @@ IMG_WIDTH = 200
 SENSOR_WIDTH   = 36 #35.6
 LENS_FOCUS_DISTANCE = 35
 CAM_TO_IMG_DISTANCE = 300
+
+
+
 class ImgType(enum.IntEnum):
     REAL = 0
     CG = 1
@@ -56,6 +62,12 @@ def getData(path, freq, ImgType):
                 break
             #print(ytmp)
     #quit()
+    addlpdata(path, f_lpmm)
+    
+            
+    return y[1:]
+
+def addlpdata(path, f_lpmm):
     with open(path, 'r', newline='') as inf, open(path.replace('.csv',"")+"_lp.csv", 'w', newline='') as ouf:
         
         csvreader = csv.reader(inf)
@@ -78,7 +90,6 @@ def getData(path, freq, ImgType):
             row.append(f_lpmm[i-1])
             csvwriter.writerow(row)
             
-    return y[1:]
 
 def trimData(data, delArray):
     return np.delete(data, delArray, 1)
@@ -86,16 +97,51 @@ def trimData(data, delArray):
 def extractData(data, ext):
     return np.array(data)[np.ix_(list(range(np.array(data).shape[0])), ext)]
 
+def multiget(datapaths):
+    datas = glob.glob(datapaths + "/*.csv")
+    lpdatas = []
+    #print(datas)
+    for dataPath in datas:
+        if not '_lp' in dataPath:
+            #print(dataPath)
+            data = getData(dataPath, FREQ, ImgType.REAL)
+            #data = getData(dataPath, FREQ, ImgType.CG)
+            lpavg = np.average(data, axis=0)
+            #print(os.path.splitext(os.path.basename(dataPath))[0])
+            #print([os.path.splitext(os.path.basename(dataPath))[0], lpavg[1]])
+            lpdatas.append([os.path.splitext(os.path.basename(dataPath))[0], lpavg[1]])
+        #print(data)
+    #print(lpdatas)
+    createavgmtfs(datapaths, lpdatas)
+
+def createavgmtfs(datapath, lpdatas):
+    outputfile=datapath + "/avgmtfs.csv"
+    with open(outputfile, 'w', newline='') as ouf:
+        csvwriter = csv.writer(ouf)
+        csvwriter.writerows(lpdatas)
+        
+        #firstRow = True
+        #for i, row in enumerate(lptadas):
+        #    #print(row)
+        #    if firstRow:
+        #        # 最初1行は取り除く
+        #        row.append(["filename","avgmtf"])
+        #        csvwriter.writerow(row)
+        #        firstRow=False    
+        #        continue
+        #    #print(row)
+        #    row.append(lptadas[i-1])
+        #    csvwriter.writerow(row)
+    
 
 def main():
     dataPath = sys.argv[1]
+    multiget(dataPath)
     
-    data = getData(dataPath, FREQ, ImgType.REAL)
+    #data = getData(dataPath, FREQ, ImgType.REAL)
     #data = getData(dataPath, FREQ, ImgType.CG)
-    #print(data)
     
-    print(np.average(data, axis=0
-                     ))
+    #print(np.average(data, axis=0))
     
 
 
