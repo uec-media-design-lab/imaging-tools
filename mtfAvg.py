@@ -9,8 +9,8 @@ import glob
 import os
 
 FREQ= 1
-IMG_WIDTH_REAL = 6024 #画像（ROI）の横幅
-IMG_WIDTH_CG   = 1080 #画像（ROI）の横幅
+IMG_WIDTH_REAL = 6024 #画像の横幅
+IMG_WIDTH_CG   = 2160 #画像の横幅
 IMG_WIDTH = 200
 SENSOR_WIDTH   = 36 #35.6
 LENS_FOCUS_DISTANCE = 35
@@ -102,15 +102,16 @@ def multiget(datapaths):
     lpdatas = []
     #print(datas)
     for dataPath in datas:
-        if not '_lp' in dataPath:
+        if (not '_lp' in dataPath) and (not 'avgmtfs' in dataPath):
             #print(dataPath)
-            data = getData(dataPath, FREQ, ImgType.REAL)
-            #data = getData(dataPath, FREQ, ImgType.CG)
+            #quit()
+            #data = getData(dataPath, FREQ, ImgType.REAL)
+            data = getData(dataPath, FREQ, ImgType.CG)
             lpavg = np.average(data, axis=0)
             #print(os.path.splitext(os.path.basename(dataPath))[0])
             #print([os.path.splitext(os.path.basename(dataPath))[0], lpavg[1]])
             lpdatas.append([os.path.splitext(os.path.basename(dataPath))[0], lpavg[1]])
-        #print(data)
+            print(lpavg)
     #print(lpdatas)
     createavgmtfs(datapaths, lpdatas)
 
