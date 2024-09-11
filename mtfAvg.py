@@ -9,8 +9,8 @@ import glob
 import os
 
 FREQ= 1
-IMG_WIDTH_REAL = 6024 #画像の横幅
-IMG_WIDTH_CG   = 2160 #画像の横幅
+IMG_WIDTH_REAL = 5599 #画像の横幅
+IMG_WIDTH_CG   = 1080 #画像の横幅
 IMG_WIDTH = 200
 SENSOR_WIDTH   = 36 #35.6
 LENS_FOCUS_DISTANCE = 35
@@ -97,7 +97,7 @@ def trimData(data, delArray):
 def extractData(data, ext):
     return np.array(data)[np.ix_(list(range(np.array(data).shape[0])), ext)]
 
-def multiget(datapaths):
+def multiget(datapaths, Type):
     datas = glob.glob(datapaths + "/*.csv")
     lpdatas = []
     #print(datas)
@@ -106,7 +106,7 @@ def multiget(datapaths):
             #print(dataPath)
             #quit()
             #data = getData(dataPath, FREQ, ImgType.REAL)
-            data = getData(dataPath, FREQ, ImgType.CG)
+            data = getData(dataPath, FREQ, Type)
             lpavg = np.average(data, axis=0)
             #print(os.path.splitext(os.path.basename(dataPath))[0])
             #print([os.path.splitext(os.path.basename(dataPath))[0], lpavg[1]])
@@ -137,12 +137,13 @@ def createavgmtfs(datapath, lpdatas):
 
 def main():
     dataPath = sys.argv[1]
-    multiget(dataPath)
+    #multiget(dataPath, ImgType.REAL)
+    #multiget(dataPath, ImgType.CG)
     
-    #data = getData(dataPath, FREQ, ImgType.REAL)
+    data = getData(dataPath, FREQ, ImgType.REAL)
     #data = getData(dataPath, FREQ, ImgType.CG)
     
-    #print(np.average(data, axis=0))
+    print(np.average(data, axis=0))
     
 
 
