@@ -9,6 +9,7 @@ floating_distance = []
 Real_MMAP = []
 Mitsuba_MMAP = []
 Blender_MMAP = []
+Ours_MMAP = []
 
 # CSVファイルを読み込んでリストにデータを格納
 with open(csv_file, 'r', newline='') as file:
@@ -27,7 +28,7 @@ plt.figure()
 plt.plot(floating_distance, Real_MMAP, 'ko-', label='Real_MMAP')
 #plt.plot(floating_distance, RF_AN, 'kD:', label='RF-AN')
 plt.plot(floating_distance, Mitsuba_MMAP, 'bs-', label='Mitsuba_MMAP')
-#plt.plot(floating_distance, Ours_RF_AN, 'bd:', label='Ours (RF-AN)')
+plt.plot(floating_distance, Ours_MMAP, 'bd:', label='Ours_MMAP')
 plt.plot(floating_distance, Blender_MMAP, 'y^-', label='Blender_MMAP')
 #plt.plot(floating_distance, Guo_RF_AN, 'y^:', label='Guo et al. (RF-AN)')
 
