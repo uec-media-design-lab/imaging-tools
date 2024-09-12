@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import csv
 
 # CSVファイルを読み込む (仮定: 各列が別のデータセットを表している)
-csv_file = 'plot/plotdismtf.csv'  # 実際のCSVファイル名を指定
+csv_file = 'plot/plotdismtf_sub.csv'  # 実際のCSVファイル名を指定
 
 # 各プロットに対応するリストを準備
 floating_distance = []
