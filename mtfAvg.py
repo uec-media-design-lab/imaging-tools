@@ -8,9 +8,9 @@ import matplotlib.cm as cm
 import glob
 import os
 
-FREQ= 1
+FREQ= 0.6
 IMG_WIDTH_REAL = 6024 #画像の横幅
-IMG_WIDTH_CG   = 1080 #画像の横幅
+IMG_WIDTH_CG   = 1080#1080 #画像の横幅
 IMG_WIDTH = 200
 SENSOR_WIDTH   = 36 #35.6
 LENS_FOCUS_DISTANCE = 35
@@ -29,7 +29,7 @@ def cpm2lppmm(x, type):
 
 def getData(path, freq, ImgType):
     idx = -1
-    f = np.linspace(0, 1, 512)
+    f = np.linspace(0, 1, 1024)
     f_lpmm = cpm2lppmm(f, ImgType)
     #print(f_lpmm)
     

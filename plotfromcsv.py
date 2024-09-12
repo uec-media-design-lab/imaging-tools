@@ -20,6 +20,7 @@ with open(csv_file, 'r', newline='') as file:
         Real_MMAP.append(float(row[1]))
         Mitsuba_MMAP.append(float(row[2]))
         Blender_MMAP.append(float(row[3]))
+        Ours_MMAP.append(float(row[4]))
 
 # グラフを描画
 plt.figure()
@@ -28,7 +29,7 @@ plt.figure()
 plt.plot(floating_distance, Real_MMAP, 'ko-', label='Real_MMAP')
 #plt.plot(floating_distance, RF_AN, 'kD:', label='RF-AN')
 plt.plot(floating_distance, Mitsuba_MMAP, 'bs-', label='Mitsuba_MMAP')
-#plt.plot(floating_distance, Ours_MMAP, 'bd:', label='Ours_MMAP')
+plt.plot(floating_distance, Ours_MMAP, 'bd:', label='Ours_MMAP')
 plt.plot(floating_distance, Blender_MMAP, 'y^-', label='Blender_MMAP')
 #plt.plot(floating_distance, Guo_RF_AN, 'y^:', label='Guo et al. (RF-AN)')
 
