@@ -10,10 +10,10 @@ import os
 
 FREQ= 1
 IMG_WIDTH_REAL = 6024 #画像の横幅
-IMG_WIDTH_CG   = 1080#1080 #画像の横幅
+IMG_WIDTH_CG   = 2160#1080 #画像の横幅
 IMG_WIDTH = 200
 SENSOR_WIDTH   = 36 #35.6
-LENS_FOCUS_DISTANCE = 35
+LENS_FOCUS_DISTANCE = 34
 CAM_TO_IMG_DISTANCE = 300
 
 
@@ -137,8 +137,8 @@ def createavgmtfs(datapath, lpdatas):
 
 def main():
     dataPath = sys.argv[1]
-    #multiget(dataPath, ImgType.REAL)
-    multiget(dataPath, ImgType.CG)
+    multiget(dataPath, ImgType.REAL)
+    #multiget(dataPath, ImgType.CG)
     
     #data = getData(dataPath, FREQ, ImgType.REAL)
     #data = getData(dataPath, FREQ, ImgType.CG)
