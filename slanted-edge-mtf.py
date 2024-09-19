@@ -36,7 +36,7 @@ DEFAULT_CONFIG = {
     "edge-max-angle": 88, 
 }
 
-IMAGE_FORMAT = "exr"#"tif"
+IMAGE_FORMAT = "tif"
 
 # MTF解析結果をひとつのクラスにまとめて管理
 class MTFResults(object):
