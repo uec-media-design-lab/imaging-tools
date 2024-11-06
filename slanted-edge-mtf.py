@@ -84,7 +84,7 @@ def mtf(config, results, filename, outputDir):
     # plot source image - selected regions will be overlaid later
     # ソース画像表示用のpp用意？ ROIが上書きで描画されるらしい。
     fig, axis = pp.subplots(num="image", nrows=1, ncols=1, squeeze=True, figsize=(17,9), dpi=110)
-    fig.canvas.set_window_title("slanted-edge-mtf: Selected regions")   # ウィンドウ名セット
+    fig.canvas.manager.set_window_title("slanted-edge-mtf: Selected regions")   # ウィンドウ名セット
     axis.imshow(image)  # 画像表示
     pp.title(basename)  # タイトルセット
 
@@ -306,7 +306,7 @@ def fft(lsf):
 # MTFグラフの描画
 def plot_mtf(mtf, mtf50, mtf20, **kwargs):  # MTFデータ, MTF0.5の空間周波数, MTF0.2の空間周波数, その他オプション
     fig = pp.figure(num="mtf", figsize=(17,9), dpi=110)         # 名前：mtf, 縦横比17:9, dpi110
-    fig.canvas.set_window_title("slanted-edge-mtf: MTF curves") # ウィンドウ名セット
+    fig.canvas.manager.set_window_title("slanted-edge-mtf: MTF curves") # ウィンドウ名セット
     pp.grid(linestyle=":")                                                  # グリッドを点線表示
     pp.xlim([0, 0.75])                                                      # X軸最大値：0.75
     pp.ylim([0, 1])                                                         # Y軸最大値：1
@@ -327,7 +327,7 @@ def plot_lsf(images, curves, titles, suptitle):     # 画像データ, グラフ
     if DEBUG:   # デバッグ時に実行される
         ncols = len(curves) + len(images)   # カラム数設定
         fig, axes = pp.subplots(num="curves", nrows=1, ncols=ncols, squeeze=False, clear=True, figsize=(17,9), dpi=110) # curvesの名でfig用意
-        fig.canvas.set_window_title("slanted-edge-mtf: {} ESF & LSF curves".format(suptitle))   # ウィンドウ名指定
+        fig.canvas.manager.set_window_title("slanted-edge-mtf: {} ESF & LSF curves".format(suptitle))   # ウィンドウ名指定
         axes = axes.flatten()   # 多次元配列を一元化
         for i, img in enumerate(images):    # それぞれの画像に対して
             axes[i].imshow(img)             # 対応する軸にimshow
@@ -352,7 +352,7 @@ def plot_edge(images, edge_coeffs=None, suptitle=None):
         ncols = len(images)             # カラム数指定
         roih, roiw = images[0].shape    # ROIの縦横サイズ取得
         fig, axes = pp.subplots(num="edges", nrows=1, ncols=ncols, sharey=True, squeeze=False, clear=True, figsize=(17,9), dpi=110) # edgesの名でグラフ用意
-        fig.canvas.set_window_title("slanted-edge-mtf: {} edge detection".format(suptitle))     # ウィンドウ名セット
+        fig.canvas.manager.set_window_title("slanted-edge-mtf: {} edge detection".format(suptitle))     # ウィンドウ名セット
         axes = np.array(fig.axes)   # 軸作成？
         axes = axes.flatten()       # 多次元配列を一元化
         for ax, img in zip(axes, images):   # それぞれの画像に対して
@@ -391,7 +391,7 @@ class ROI_selector(object):
 
     def run(self, corner):          # run：ROI選択本体
         self.fig, self.ax = pp.subplots(num="selector", figsize=(17,9), dpi=110)    # num:識別番号, figsize:画像サイズ(縦横比っぽい), dpi:1インチあたりのピクセル数
-        self.fig.canvas.set_window_title("slanted-edge-mtf: Edge Region Selector")
+        self.fig.canvas.manager.set_window_title("slanted-edge-mtf: Edge Region Selector")
         self.ax.imshow(self.image, cmap="gray")
         """
         RectangleSelector   https://matplotlib.org/stable/api/widgets_api.html#matplotlib.widgets.RectangleSelector
@@ -410,7 +410,7 @@ class ROI_selector(object):
         """
         rs = matplotlib.widgets.RectangleSelector(self.ax,
                                                   self.box_select_callback,
-                                                  drawtype="box",
+                                                  #drawtype="box",
                                                   useblit=True,
                                                   button=[1],
                                                   minspanx=MIN_ROI_WIDTH,
