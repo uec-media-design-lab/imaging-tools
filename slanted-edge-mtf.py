@@ -518,7 +518,7 @@ def main():
         sys.exit(-1)
 
     ########################################
-    filepathlist, filelist = mkfilelist(sys.argv[1], "tif") # (改変して自作関数挿入)第一引数のフォルダ名からtif形式のファイルリストを作成
+    filepathlist, filelist = mkfilelist(sys.argv[1], "png") # (改変して自作関数挿入)第一引数のフォルダ名からtif形式のファイルリストを作成
     outputDir = mkdir(sys.argv[1])                          # 自作関数：格納先フォルダが無ければ作る
     
     for i in range(len(filelist)):                          # ファイルリスト一つずつ取って処理
