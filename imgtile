@@ -4,8 +4,12 @@ import os                           # built-in module
 import sys                          # built-in module
 import pprint                       # built-in module
 from types import SimpleNamespace   # built-in module
+import PIL.Image                    # pip install pillow
+import PIL.ImageDraw                # pip install pillow
+import PIL.ImageFont                # pip install pillow
 import numpy as np                  # pip install numpy
 import natsort                      # pip install natsort
+import primefac                     # pip install primefac
 import rawpipe                      # pip install rawpipe
 import imsize                       # pip install imsize
 import imgio                        # pip install imgio
@@ -18,45 +22,64 @@ def parse_args():
     config.outfile = argv.stringval("--out", default=None)
     config.collage = argv.intpair("--collage", default=None)
     config.mosaic = argv.intpair("--mosaic", default=None)
+    config.interleave = argv.intval("--interleave", default=None)
     config.transpose = argv.exists("--transpose")
+    config.unsorted = argv.exists("--unsorted")
     config.downsample = argv.intval("--downsample", default=0, accepted=[0, 1, 2, 3])
-    config.shape = config.collage or config.mosaic
+    config.labels = argv.intval("--labels", default=0, condition="v >= 10")
+    config.eightbit = argv.exists("--8-bit")
+    config.shape = config.collage or config.mosaic or config.interleave
     show_help = argv.exists("--help")
     show_help = show_help or not config.shape
     if show_help:
         print(f"Usage: {toolname} [options] img00 ...")
         print()
         print(f"options:")
-        print(f"  --collage W H    assemble a collage of W x H full-size images")
-        print(f"  --mosaic W H     assemble cropped tiles into a composite image")
-        print(f"  --transpose      collect input images in transposed sorted order")
-        print(f"  --downsample N   downsample the final image by a factor of 2^N")
-        print(f"  --out filename   output filename; default = [collage|mosaic].jpg")
+        print(f"  --collage W H      assemble a collage of W x H full-size images")
+        print(f"  --mosaic W H       assemble W x H cropped tiles into a composite image")
+        print(f"  --interleave N     take horizontal slices of each image, N slices total")
+        print(f"  --transpose        collect input images in transposed sorted order")
+        print(f"  --unsorted         take files in command-line order, do not sort")
+        print(f"  --downsample N     downsample the final image by a factor of 2^N")
+        print(f"  --labels S         overlay filenames on output image, font size = S pixels")
+        print(f"  --8-bit            use 8-bit colors even if the output format supports more")
+        print(f"  --out filename     output filename; default = [collage|mosaic|interleaved].png")
         print()
-        print(f"  Either '--collage' or '--mosaic' must be given.")
+        print(f"  One of '--collage|mosaic|interleave' must be given.")
         print()
         print(f"  Combines the given set of W * H images into a single image, either by")
-        print(f"  concatenating them into a collage or by cropping and tiling them into")
-        print(f"  a mosaic. All images must have the same width and height, except for")
-        print(f"  1 x H and W x 1 collages, where only one of the dimensions must match.")
+        print(f"  concatenating them into a collage; by cropping and tiling them into")
+        print(f"  a mosaic; or by taking a total of N slices from each image in turn.")
+        print(f"  All images must have the same width and height, except for 1 x H and")
+        print(f"  W x 1 collages, where only one of the dimensions must match.")
+        print()
+        print(f"examples:")
+        print(f"  {toolname} --collage 4 2 --downsample 2 image*.jpg")
+        print(f"  {toolname} --mosaic 3 3 --transpose image*.jpg")
+        print(f"  {toolname} --interleave 32 --transpose gt.png test.png")
         print()
         sys.exit(-1)
     else:
         print(f"See '{toolname} --help' for command-line options.")
-        config.shape = config.shape[::-1]
-        config.num_tiles = config.shape[0] * config.shape[1]
         img_files = argv.filenames(sys.argv[1:])[0]
-        if len(img_files) != config.num_tiles:
+        if not config.unsorted:
+            img_files = natsort.natsorted(img_files)
+        config.shape = (1, len(img_files)) if config.interleave else config.shape[::-1]
+        config.num_tiles = config.shape[0] * config.shape[1]
+        config.num_blanks = config.num_tiles - len(img_files)
+        if config.num_blanks < 0:
             print(f"Expecting precisely {config.num_tiles} images, got {len(img_files)}. Terminating.")
             sys.exit(-1)
-        imgfiles = natsort.natsorted(img_files)
+        elif config.num_blanks > 0:
+            print(f"Expecting precisely {config.num_tiles} images, got {len(img_files)}. Filling with blanks.")
+            img_files += ["Dummy"] * config.num_blanks
         if config.transpose:
-            imgfiles = np.array(imgfiles)
-            imgfiles = imgfiles.reshape(config.shape[::-1])
-            imgfiles = imgfiles.T.flatten().tolist()
-        config.filespecs = imgfiles
+            img_files = np.array(img_files)
+            img_files = img_files.reshape(config.shape[::-1])
+            img_files = img_files.T.flatten().tolist()
+        config.filespecs = img_files
         print("Configuration:")
-        pprint.pprint(vars(config))
+        pprint.pp(vars(config))
         return config
 
 
@@ -74,19 +97,72 @@ def _enforce_dims(gridw, gridh, widths, heights):
         assert np.all(heights == h), f"{heights} != {h}"
 
 
-def collage(config):
-    gridh, gridw = config.shape
-    infos = [imsize.read(f) for f in config.filespecs]
+def basename(filespec):
+    with_ext = os.path.basename(filespec)
+    without_ext = os.path.splitext(with_ext)[0]
+    return without_ext
+
+
+def write(config, outfile, img, maxval):
+    if config.eightbit and maxval > 255:
+        img = rawpipe.quantize8(img / maxval)
+        maxval = 255
+    imgio.imwrite(outfile, img, maxval, verbose=True)
+
+
+def interleave(config):
+    num_valid = len(config.filespecs) - config.num_blanks
+    infos = [imsize.read(f) for f in config.filespecs[:num_valid]]
     widths = [info.width for info in infos]
     heights = [info.height for info in infos]
+    _enforce_dims(None, None, widths, heights)
+    img, maxval = imgio.imread(config.filespecs[0])
+    order = (1, 0, 2) if config.transpose else (0, 1, 2)
+    img = np.atleast_3d(img).transpose(order)
+    h, w, ch = img.shape
+    s = config.interleave
+    if s > h:
+        img = np.repeat(img, repeats=(s // h), axis=0)
+        img = np.repeat(img, repeats=(s // h), axis=1)
+        h, w, ch = img.shape
+    primes = list(primefac.primefac(h))
+    assert h % s == 0, f"image height {h} is not evenly divisible by {s}; prime factors = {primes}"
+    result = np.zeros((s, h // s, w, ch), dtype=img.dtype)
+    stride = len(config.filespecs)
+    for i, fspec in enumerate(config.filespecs):
+        img, maxval = imgio.imread(fspec, verbose=True)
+        repeats = h // img.shape[0]
+        if h > 1:
+            img = np.repeat(img, repeats=repeats, axis=0)
+            img = np.repeat(img, repeats=repeats, axis=1)
+        img = np.atleast_3d(img).transpose(order)
+        img = img.reshape(result.shape)
+        result[i::stride] = img[i::stride]
+        result[i] = text(config, img[i], basename(fspec))
+    result = result.reshape(h, w, ch).transpose(order)
+    factor = int(2 ** config.downsample)
+    result = rawpipe.resize(result, w // factor, h // factor)
+    outfile = config.outfile or "interleaved.png"
+    write(config, outfile, result, maxval)
+
+
+def collage(config):
+    gridh, gridw = config.shape
+    num_valid = len(config.filespecs) - config.num_blanks
+    infos = [imsize.read(f) for f in config.filespecs[:num_valid]]
+    widths = [info.width for info in infos if info is not None]
+    heights = [info.height for info in infos if info is not None]
+    widths += [widths[-1]] * config.num_blanks
+    heights += [heights[-1]] * config.num_blanks
     _enforce_dims(gridw, gridh, widths, heights)
     grid_x = np.cumsum([0] + widths)
     grid_y = np.cumsum([0] + heights)
     fullw = grid_x[gridw]
     fullh = grid_y[gridh]
     img, maxval = imgio.imread(config.filespecs[0], verbose=False)
-    result = np.zeros((fullh, fullw, 3), dtype=img.dtype)
-    for i, fspec in enumerate(config.filespecs):
+    result = np.ones((fullh, fullw, 3), dtype=img.dtype) * maxval
+    print("\nGenerating a collage with the following images in row-major order:")
+    for i, fspec in enumerate(config.filespecs[:num_valid]):
         img, maxval = imgio.imread(fspec, verbose=True)
         img = np.atleast_3d(img)
         img = img[..., :3]  # drop alpha channel
@@ -94,11 +170,12 @@ def collage(config):
         iy, ix = np.unravel_index(i, config.shape)
         xstart = grid_x[ix]
         ystart = grid_y[iy]
-        result[ystart:ystart + h, xstart:xstart + w] = img
+        slot = np.s_[ystart:ystart + h, xstart:xstart + w]
+        result[slot] = text(config, img, basename(fspec))
     factor = int(2 ** config.downsample)
     result = rawpipe.resize(result, fullw // factor, fullh // factor)
-    outfile = config.outfile or "collage.jpg"
-    imgio.imwrite(outfile, result, maxval, verbose=True)
+    outfile = config.outfile or "collage.png"
+    write(config, outfile, result, maxval)
 
 
 def mosaic(config):
@@ -108,17 +185,41 @@ def mosaic(config):
     h, w = img.shape[:2]
     x_split = w // config.shape[1]
     y_split = h // config.shape[0]
-    for i, fspec in enumerate(config.filespecs):
+    num_valid = len(config.filespecs) - config.num_blanks
+    for i, fspec in enumerate(config.filespecs[:num_valid]):
         img, maxval = imgio.imread(fspec, verbose=True)
         img = np.atleast_3d(img)
         iy, ix = np.unravel_index(i, config.shape)
         ystart = iy * y_split
         xstart = ix * x_split
-        result[ystart:, xstart:] = img[ystart:, xstart:]
+        result[ystart:, xstart:] = text(config, img[ystart:, xstart:], basename(fspec))
     factor = int(2 ** config.downsample)
     result = rawpipe.resize(result, w // factor, h // factor)
-    outfile = config.outfile or "mosaic.jpg"
-    imgio.imwrite(outfile, result, maxval, verbose=True)
+    outfile = config.outfile or "mosaic.png"
+    write(config, outfile, result, maxval)
+
+
+def text(config, img, string):
+    if config.labels:
+        dt = img.dtype
+        maxval = 255 if img.dtype == np.uint8 else 65535
+        h, w = img.shape[:2]
+        fontsize = config.labels
+        font = PIL.ImageFont.truetype("FreeSansBold.ttf", fontsize)
+        fontw, fonth = font.getsize("gt")
+        if fontw > w or fonth > h:
+            print(f"Font size {fontw} x {fonth} is larger than the target region ({w} x {h}); not adding a label.")
+            return img
+        txt = PIL.Image.new("RGBA", (w, h), (255, 255, 255, 0))
+        d = PIL.ImageDraw.Draw(txt)
+        d.text((2, 2), string, anchor="lt", font=font)
+        txt = np.array(txt).astype(float) / 255.0
+        img = img.astype(float) / maxval
+        alpha = txt[..., [3]]
+        glyphs = txt[..., :3]
+        img = img * (1 - alpha) + glyphs * alpha
+        img = np.rint(img * maxval).astype(dt)
+    return img
 
 
 def main():
@@ -126,8 +227,10 @@ def main():
         config = parse_args()
         if config.collage:
             collage(config)
-        else:
+        elif config.mosaic:
             mosaic(config)
+        elif config.interleave:
+            interleave(config)
 
 
 if __name__ == "__main__":
